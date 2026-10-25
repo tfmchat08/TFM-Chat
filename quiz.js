@@ -75,11 +75,12 @@ function setPickersFromRoom() {
 async function checkUser() {
   const { data } = await sb.auth.getSession();
   const user = data && data.session ? data.session.user : null;
-  if (!user) return { loggedIn: false, staff: false, id: null };
+  if (!user) return { loggedIn: false, staff: false, admin: false, id: null };
   const { data: prof } = await sb.from('profiles').select('role').eq('id', user.id).maybeSingle();
   return {
     loggedIn: true,
     staff: !!prof && (prof.role === 'admin' || prof.role === 'sender'),
+    admin: !!prof && prof.role === 'admin',
     id: user.id,
   };
 }
@@ -477,6 +478,69 @@ async function loadExams() {
   });
 }
 
+// ---------- السجل: كل الأسئلة المضافة للشعبة بالتاريخ، تتعدّل أو تتمسح من هنا ----------
+function toggleHistory() {
+  const box = $('history-box');
+  const opening = box.hidden;
+  box.hidden = !opening;
+  if (opening) loadHistory();
+}
+
+async function loadHistory() {
+  const list = $('history-list');
+  list.innerHTML = '';
+  const { data, error } = await sb.from('quiz_questions')
+    .select('id, question, options, answer, created_at')
+    .eq('room', room)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    list.textContent = error.message;
+    return;
+  }
+  const rows = data || [];
+  $('count-hist').textContent = String(rows.length);
+
+  if (!rows.length) {
+    const p = el('p', 'empty-line');
+    p.textContent = 'مفيش أسئلة مضافة للشعبة دي لسه';
+    list.appendChild(p);
+    return;
+  }
+
+  rows.forEach((row) => {
+    const div = el('div', 'bank-item');
+
+    const q = el('div', 'bank-q');
+    q.textContent = row.question;
+
+    const meta = el('div', 'exam-meta');
+    meta.textContent = `أُضيف: ${new Date(row.created_at).toLocaleString('ar-EG')}`;
+
+    const btns = el('div', 'row-btns');
+    const edit = btn('✏️ تعديل');
+    edit.onclick = () => {
+      $('history-box').hidden = true;
+      startEdit(row);
+    };
+    const del = btn('🗑️ حذف', 'danger');
+    del.onclick = async () => {
+      if (!confirm('تمسح السؤال ده؟')) return;
+      const { error: delErr } = await sb.from('quiz_questions').delete().eq('id', row.id);
+      if (delErr) return alert(delErr.message);
+      await loadHistory();
+      await loadRoom();
+    };
+    btns.appendChild(edit);
+    btns.appendChild(del);
+
+    div.appendChild(q);
+    div.appendChild(meta);
+    div.appendChild(btns);
+    list.appendChild(div);
+  });
+}
+
 // ---------- التشغيل ----------
 async function init() {
   setPickersFromRoom();
@@ -488,6 +552,7 @@ async function init() {
   $('add-form').addEventListener('submit', saveQuestion);
   $('cancel-edit').addEventListener('click', () => { stopEdit(); });
   $('exam-make').addEventListener('click', makeExam);
+  $('history-btn').addEventListener('click', toggleHistory);
 
   let s;
   try {
@@ -498,6 +563,8 @@ async function init() {
   loggedIn = s.loggedIn;
   isStaff = s.staff;
   myId = s.id;
+  // السجل للأدمن بس
+  $('history-btn').hidden = !s.admin || !!examId;
 
   if (examId) {
     // وضع الاختبار: مفيش شعبة ولا لوحة أستاذ

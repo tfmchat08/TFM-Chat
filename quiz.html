@@ -132,13 +132,30 @@
     .exam-make input { flex: 1; min-width: 160px; margin-bottom: 0; }
     .exam-meta { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
     .empty-line { color: var(--muted); font-size: 14px; }
+    .hist-btn {
+      padding: 6px 12px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: 1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <header>
     <a href="./">→ رجوع للشات</a>
     <h1>الاختبارات</h1>
+    <button id="history-btn" class="hist-btn" type="button" title="السجل" hidden>🕘</button>
   </header>
+
+  <!-- السجل: كل الأسئلة المضافة للشعبة، تتعدّل أو تتمسح من هنا -->
+  <section id="history-box" class="staff-box" hidden>
+    <h2>🕘 السجل (<span id="count-hist">0</span>)</h2>
+    <p class="hint-line">كل سؤال اتضاف للشعبة دي. تقدر تعدّله أو تمسحه من هنا.</p>
+    <div id="history-list"></div>
+  </section>
 
   <!-- لوحة الأستاذ: بتظهر للأدمن والمرسل بس، وبتشتغل على شعبته هو بس -->
   <section id="staff-box" class="staff-box" hidden>
