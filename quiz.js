@@ -325,8 +325,7 @@ async function loadBank() {
     const del = btn('🗑️ حذف', 'danger');
     del.onclick = async () => {
       if (!confirm('تمسح السؤال ده؟')) return;
-      const { error: delErr } = await sb.from('quiz_questions').delete().eq('id', row.id);
-      if (delErr) return alert(delErr.message);
+      if (!(await deleteQuestion(row.id))) return;
       await loadRoom();
     };
     btns.appendChild(edit);
@@ -338,6 +337,20 @@ async function loadBank() {
     div.appendChild(btns);
     box.appendChild(div);
   });
+}
+
+// حذف سؤال: لو السيرفر ما مسحش ولا صف (بسبب الصلاحية) بنقول للأستاذ بدل ما نعرض إنه اتمسح
+async function deleteQuestion(id) {
+  const { data, error } = await sb.from('quiz_questions').delete().eq('id', id).select('id');
+  if (error) {
+    alert(error.message);
+    return false;
+  }
+  if (!data || !data.length) {
+    alert('ما اتمسحش السؤال. مفيش صلاحية على الشعبة دي من حسابك.');
+    return false;
+  }
+  return true;
 }
 
 // تحديد الكل / إلغاء التحديد
@@ -511,8 +524,9 @@ async function loadExams() {
     const del = btn('🗑️ حذف', 'danger');
     del.onclick = async () => {
       if (!confirm(`تمسح الاختبار "${ex.title}"؟`)) return;
-      const { error: delErr } = await sb.from('quiz_exams').delete().eq('id', ex.id);
+      const { data: gone, error: delErr } = await sb.from('quiz_exams').delete().eq('id', ex.id).select('id');
       if (delErr) return alert(delErr.message);
+      if (!gone || !gone.length) return alert('ما اتمسحش الاختبار. مفيش صلاحية على الشعبة دي من حسابك.');
       await loadExams();
     };
 
@@ -587,8 +601,7 @@ async function loadHistory() {
     const del = btn('🗑️ حذف', 'danger');
     del.onclick = async () => {
       if (!confirm('تمسح السؤال ده؟')) return;
-      const { error: delErr } = await sb.from('quiz_questions').delete().eq('id', row.id);
-      if (delErr) return alert(delErr.message);
+      if (!(await deleteQuestion(row.id))) return;
       await loadHistory();
       await loadRoom();
     };
