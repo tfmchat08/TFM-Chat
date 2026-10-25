@@ -52,6 +52,20 @@ function switchChat(slot) {
   loadMessages();
 }
 
+// ---------- زرار إعدادات فهيم ----------
+// بنربطه هنا عشان يشتغل حتى لو ai.js على الريبو لسه قديم
+$('ai-settings-btn').onclick = () => {
+  const isAdmin = !!(currentProfile && currentProfile.role === 'admin');
+  $('ai-books-open').classList.toggle('hidden', !isAdmin);
+  $('ai-settings-modal').classList.remove('hidden');
+};
+$('ai-settings-close').onclick = () => $('ai-settings-modal').classList.add('hidden');
+$('ai-books-open').onclick = () => {
+  const box = $('ai-books-admin');
+  box.classList.toggle('hidden');
+  if (!box.classList.contains('hidden') && typeof loadAiBooksAdmin === 'function') loadAiBooksAdmin();
+};
+
 // ---------- إعدادات الشاتات (الأدمن بس) ----------
 const chatAdminBtn = document.createElement('button');
 chatAdminBtn.type = 'button';
