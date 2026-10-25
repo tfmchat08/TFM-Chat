@@ -467,6 +467,40 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px var(--accent);
 }
 
+/* ===== بادج المستفز (إيستر إيج فهيم) ===== */
+.user-badge {
+  display: inline-block;
+  margin-inline-start: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #f59e0b, #e11d48);
+  vertical-align: middle;
+}
+
+.badge-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 900;
+  max-width: 90vw;
+  padding: 12px 18px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #e11d48, #9e0f2e);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  animation: toastIn 0.3s ease;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
 /* احترام إعداد تقليل الحركة في الجهاز */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

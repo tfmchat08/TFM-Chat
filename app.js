@@ -649,6 +649,7 @@ $('members-close').onclick = () => $('members-panel').classList.add('hidden');
 
 async function loadMembers() {
   const box = $('members-list');
+  if (window.loadBadges) await window.loadBadges();
   const { data, error } = await sb.from('profiles')
     .select('id, display_name, avatar_url, role, is_banned')
     .order('display_name', { ascending: true });
@@ -725,6 +726,13 @@ async function loadMembers() {
         if (error) alert(error.message);
         else await loadMembers();
       }, p.is_banned ? 'ghost' : 'danger-btn');
+
+      if (window.badgeFor && window.badgeFor(p.id)) {
+        addAction('🏷️ شيل بادج المستفز', async () => {
+          if (!confirm(`تشيل بادج "المستفز" من "${who}"؟`)) return;
+          await window.revokeBadge(p.id);
+        }, 'ghost');
+      }
 
       addAction('🗑️ حذف الحساب', async () => {
         if (p.role === 'admin') return alert('مينفعش تحذف أدمن من هنا');
@@ -1231,7 +1239,8 @@ function buildMessageEl(m) {
   const pinMark = m.pinned ? '<span class="pin-mark">📌</span>' : '';
 
   let html = `<button class="dots" data-id="${m.id}">⋮</button>`;
-  html += `<div class="meta">${avatar}${esc(m.profiles?.display_name || '?')} · ${time}${pinMark}</div>`;
+  const badgeMark = window.badgeHtml ? window.badgeHtml(m.user_id) : '';
+  html += `<div class="meta">${avatar}${esc(m.profiles?.display_name || '?')}${badgeMark} · ${time}${pinMark}</div>`;
 
   if (m.reply_to) {
     const parent = msgById.get(Number(m.reply_to));
@@ -1320,6 +1329,7 @@ $('pinned-bar').onclick = () => flashMsg($('pinned-bar').dataset.id);
 async function loadMessages() {
   // الشاتات بترسم الأول، عشان تفضل ظاهرة حتى لو الرسايل فشلت
   if (window.renderChatTabs) window.renderChatTabs();
+  if (window.loadBadges) await window.loadBadges();
   const { data, error } = await sb.from('messages')
     .select('*, profiles(display_name, avatar_url)')
     .eq('room', currentRoom())
