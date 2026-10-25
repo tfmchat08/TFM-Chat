@@ -1,0 +1,168 @@
+/* ===== modern2.css: شكل أحدث بأفكتات متوسطة (ليل + نهار) =====
+   الملف ده بيعدّل الشكل بس، من غير ما يغيّر أي وظيفة */
+
+/* خلفية متحركة هادية بألوان المنصة */
+@keyframes bgShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+body {
+  background: linear-gradient(120deg, var(--bg1), var(--bg2), var(--bg1));
+  background-size: 200% 200%;
+  animation: bgShift 22s ease infinite;
+}
+
+/* الشاشة الأولى والكروت: زجاج خفيف وظل ناعم */
+.card {
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.logo {
+  animation: floaty 4s ease-in-out infinite;
+}
+
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* الهيدر */
+header {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* الأزرار */
+button {
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease, background 0.2s ease;
+}
+
+button:hover {
+  filter: brightness(1.08);
+}
+
+button:active {
+  transform: scale(0.96);
+}
+
+button.primary {
+  background: linear-gradient(135deg, var(--accent), var(--bubble-mine-b));
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(196, 40, 63, 0.35);
+}
+
+button.primary:hover {
+  box-shadow: 0 10px 26px rgba(196, 40, 63, 0.5);
+}
+
+/* الحقول: حلقة نور لما تكتب فيها */
+input, select, textarea {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(196, 40, 63, 0.35);
+}
+
+/* الرسايل */
+.msg {
+  transition: transform 0.2s ease;
+}
+
+.msg:hover {
+  transform: translateY(-1px);
+}
+
+/* الصور البروفايل */
+.avatar,
+.member-avatar,
+.chat-tab img {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.avatar:hover,
+.member-avatar:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 3px var(--accent), 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* الأعضاء */
+.member-row {
+  border-radius: 14px;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.member-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateX(-2px);
+}
+
+/* شريط الشاتات */
+.chat-tab {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.chat-tab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.chat-tab.active {
+  box-shadow: 0 6px 18px rgba(196, 40, 63, 0.45);
+}
+
+/* قايمة الإعدادات */
+.set-item {
+  transition: transform 0.15s ease, background 0.2s ease;
+  border-radius: 14px;
+}
+
+.set-item:hover {
+  transform: translateX(-3px);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* النوافذ: زجاج وظل */
+.modal-box {
+  border-radius: 22px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+.modal {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  /* فوق شاشة فهيم وأي شاشة تانية */
+  z-index: 500;
+}
+
+/* ===== الوضع النهار: ظلال أنعم بلون المنصة ===== */
+[data-theme="light"] .card,
+[data-theme="light"] header,
+[data-theme="light"] .modal-box {
+  box-shadow: 0 14px 40px rgba(158, 15, 46, 0.14);
+  border-color: rgba(196, 40, 63, 0.12);
+}
+
+[data-theme="light"] .member-row:hover,
+[data-theme="light"] .set-item:hover {
+  background: rgba(196, 40, 63, 0.06);
+}
+
+/* احترام إعداد تقليل الحركة في الجهاز */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
