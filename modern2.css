@@ -501,6 +501,41 @@ input:focus, select:focus, textarea:focus {
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 
+/* ===== اختيار البادج اللي بيظهر في البروفايل ===== */
+.pf-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.pf-badges-title,
+.pf-badges-hint {
+  width: 100%;
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.85;
+  text-align: center;
+}
+
+.pf-badge-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  cursor: pointer;
+}
+
+.pf-badge-chip.on {
+  background: linear-gradient(135deg, #f59e0b, #e11d48);
+  color: #fff;
+  border-color: transparent;
+  font-weight: 700;
+}
+
 /* احترام إعداد تقليل الحركة في الجهاز */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

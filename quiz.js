@@ -142,6 +142,11 @@ function submitQuiz() {
     `Your score: ${correct} of ${total} (${pct}%)` + (unanswered ? ` · ${unanswered} unanswered` : ''));
   result.hidden = false;
 
+  // علامة كاملة = بادج "العبقري" (الصفحة دي مش مسجلة دخول، فبنسيب علامة وتتفتح لما يرجع للشات)
+  if (correct === total && unanswered === 0) {
+    try { localStorage.setItem('quizPerfect', '1'); } catch (e) { /* مش مهم */ }
+  }
+
   $('submit').hidden = true;
   $('reset').hidden = false;
   result.scrollIntoView({ behavior: 'smooth', block: 'center' });

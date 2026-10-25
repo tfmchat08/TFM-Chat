@@ -727,12 +727,12 @@ async function loadMembers() {
         else await loadMembers();
       }, p.is_banned ? 'ghost' : 'danger-btn');
 
-      if (window.badgeFor && window.badgeFor(p.id)) {
-        addAction('🏷️ شيل بادج المستفز', async () => {
-          if (!confirm(`تشيل بادج "المستفز" من "${who}"؟`)) return;
-          await window.revokeBadge(p.id);
+      (window.ownedBadgeKeys ? window.ownedBadgeKeys(p.id) : []).forEach(key => {
+        addAction(`🏷️ شيل بادج: ${window.badgeLabel(key)}`, async () => {
+          if (!confirm(`تشيل بادج "${window.badgeLabel(key)}" من "${who}"؟`)) return;
+          await window.revokeBadge(p.id, key);
         }, 'ghost');
-      }
+      });
 
       addAction('🗑️ حذف الحساب', async () => {
         if (p.role === 'admin') return alert('مينفعش تحذف أدمن من هنا');
