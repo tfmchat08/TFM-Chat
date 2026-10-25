@@ -23,7 +23,6 @@
       --bad-soft: rgba(179, 38, 30, 0.08);
       --radius: 14px;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 18px rgba(0, 0, 0, 0.06);
-      /* ألوان الخلفية المتحركة (نفس فكرة الشات) */
       --bg1: #f6eef0;
       --bg2: #fbf7f8;
     }
@@ -51,40 +50,35 @@
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
-    /* الخلفية المتحركة (الافتراضي) */
     body {
       background: linear-gradient(120deg, var(--bg1), var(--bg2), var(--bg1));
       background-size: 200% 200%;
       animation: bgShift 22s ease infinite;
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+      margin: 0;
+      padding: 16px;
+      min-height: 100vh;
+      line-height: 1.6;
     }
-    /* الخلفية الهادية: تدرج ثابت من غير حركة */
     body.calm {
       background: linear-gradient(180deg, var(--bg1), var(--bg2));
       animation: none;
     }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
-      padding: 16px;
-      min-height: 100vh;
-      line-height: 1.6;
-    }
     .wrap { max-width: 760px; margin: 0 auto; }
 
     /* ===== الهيدر ===== */
     .topbar {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       margin-bottom: 16px;
       flex-wrap: wrap;
     }
     .topbar h1 { margin: 0; font-size: 22px; color: var(--accent); flex: 1; }
-    .topbar a {
+    .topbar > a {
       color: var(--accent);
       text-decoration: none;
       font-weight: 700;
@@ -94,8 +88,8 @@
       background: var(--accent-soft);
     }
 
-    /* ===== أزرار عامة ===== */
-    button {
+    /* ===== أزرار ===== */
+    button, select {
       font: inherit;
       cursor: pointer;
       border-radius: 10px;
@@ -105,12 +99,12 @@
       padding: 8px 14px;
       font-size: 14px;
     }
+    select { cursor: pointer; border-color: var(--line); color: var(--text); background: var(--card); }
     button:disabled { opacity: 0.5; cursor: default; }
     button.primary { background: var(--accent); color: #fff; }
     button.danger { color: var(--bad); border-color: var(--bad); }
     button.ghost { border-color: var(--line); color: var(--muted); }
-    button.icon { padding: 6px 12px; font-size: 16px; }
-    .hist-btn { font-size: 18px; }
+    button.icon { padding: 6px 12px; font-size: 18px; }
 
     /* ===== الكروت ===== */
     .card {
@@ -121,34 +115,9 @@
       box-shadow: var(--shadow);
       margin-bottom: 16px;
     }
-    .card h2 {
-      font-size: 16px;
-      margin: 0 0 10px;
-      color: var(--accent);
-    }
+    .card h2 { font-size: 16px; margin: 0 0 10px; color: var(--accent); }
     .hint-line { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
     .empty-line { color: var(--muted); font-size: 14px; margin: 6px 0; }
-
-    /* ===== الإنتقال بين اللوحات ===== */
-    .tabs {
-      display: flex;
-      gap: 6px;
-      background: var(--bg);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 4px;
-      margin-bottom: 14px;
-    }
-    .tab {
-      flex: 1;
-      border: none;
-      border-radius: 9px;
-      padding: 10px;
-      color: var(--muted);
-      background: transparent;
-      font-weight: 700;
-    }
-    .tab.active { background: var(--card); color: var(--accent); box-shadow: var(--shadow); }
     .count-pill {
       display: inline-block;
       min-width: 24px;
@@ -158,12 +127,25 @@
       color: var(--accent);
       font-size: 12px;
       margin-inline-start: 4px;
+      text-align: center;
     }
+    .pill {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 999px;
+      margin-inline-start: 6px;
+    }
+    .pill.draft { background: var(--bad-soft); color: var(--bad); }
+    .pill.pub { background: var(--ok-soft); color: var(--ok); }
 
-    /* ===== فورم السؤال ===== */
+    /* ===== إنشاء الامتحان ===== */
+    .create-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .create-grid select { flex: 1; min-width: 140px; }
+    #exam-title,
     .q-form textarea,
-    .q-form input[type="text"],
-    .exam-make input[type="text"] {
+    .q-form input[type="text"] {
       width: 100%;
       padding: 10px 12px;
       border-radius: 10px;
@@ -172,19 +154,25 @@
       color: var(--text);
       font-size: 15px;
       font-family: inherit;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
-    .ans-row {
+    .create-actions {
       display: flex;
-      gap: 10px;
+      gap: 8px;
+      flex-wrap: wrap;
       align-items: center;
-      margin-bottom: 8px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--line);
     }
+    .create-actions .slot-label { font-size: 14px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+    .create-actions .spacer { flex: 1; }
+
+    /* ===== فورم السؤال والبنك ===== */
+    .ans-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
     .ans-row input[type="text"] { margin: 0; flex: 1; }
     .ans-row input[type="radio"] { width: 18px; height: 18px; accent-color: var(--accent); }
     .form-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
-
-    /* ===== صفوف البنك والاختبارات ===== */
     .bank-toolbar {
       display: flex;
       justify-content: space-between;
@@ -193,8 +181,7 @@
       flex-wrap: wrap;
       margin: 8px 0 10px;
     }
-    .bank-item,
-    .exam-item {
+    .bank-item {
       border: 1px solid var(--line);
       border-radius: 12px;
       padding: 12px;
@@ -204,57 +191,16 @@
     .bank-top { display: flex; gap: 10px; align-items: flex-start; }
     .bank-top input.pick { width: 18px; height: 18px; margin-top: 4px; flex: 0 0 auto; accent-color: var(--accent); }
     .bank-q { font-weight: 700; flex: 1; }
-    .bank-opts {
-      font-size: 14px;
-      color: var(--muted);
-      margin: 8px 0 10px;
-      padding-inline-start: 28px;
-    }
+    .bank-opts { font-size: 14px; color: var(--muted); margin: 8px 0 10px; padding-inline-start: 28px; }
     .bank-opts div { line-height: 1.9; }
     .exam-meta { font-size: 13px; color: var(--muted); margin: 2px 0 8px; }
     .row-btns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
     .row-btns button { padding: 6px 10px; font-size: 13px; }
-    .row-btns select {
-      padding: 6px 8px;
-      border-radius: 10px;
-      font-size: 13px;
-      border: 1px solid var(--line);
-      background: var(--bg);
-      color: var(--text);
-    }
-
-    /* ===== إنشاء اختبار ===== */
-    .exam-builder {
-      border-top: 1px dashed var(--line);
-      margin-top: 14px;
-      padding-top: 14px;
-    }
-    .exam-make { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .exam-make input[type="text"] { flex: 1; min-width: 180px; margin: 0; }
 
     /* ===== الطالب ===== */
-    .picker {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-    .picker select {
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--line);
-      background: var(--card);
-      color: var(--text);
-      font-size: 15px;
-      flex: 1;
-      min-width: 140px;
-    }
-    #exam-head {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--accent);
-      margin-bottom: 8px;
-    }
+    .picker { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .picker select { flex: 1; min-width: 140px; padding: 10px 12px; font-size: 15px; }
+    #exam-head { font-size: 20px; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
     #status {
       display: inline-block;
       color: var(--muted);
@@ -273,7 +219,6 @@
       padding: 14px 16px;
       margin: 0 0 12px;
       box-shadow: var(--shadow);
-      transition: border-color 0.2s ease;
     }
     .q.ok { border-left-color: var(--ok); background: var(--ok-soft); }
     .q.bad { border-left-color: var(--bad); background: var(--bad-soft); }
@@ -310,11 +255,10 @@
       color: var(--accent);
     }
 
-    /* ===== الطباعة (لطباعة الامتحان) ===== */
+    /* ===== الطباعة ===== */
     @media print {
-      body { background: #fff; color: #000; padding: 0; }
-      .topbar a, .picker, #status, .actions, .staff-box, #history-box,
-      #history-btn, #print-btn, #result, .tabs { display: none !important; }
+      body { background: #fff; color: #000; padding: 0; animation: none; }
+      .topbar > a, .picker, #status, .actions, .card, #history-btn, #bg-toggle, #create-open, #result, #print-btn { display: none !important; }
       .q { box-shadow: none; break-inside: avoid; border: 1px solid #999; border-left-width: 1px; }
       .opt { border: 1px solid #ccc; background: #fff; }
       .opt input { accent-color: #000; }
@@ -327,86 +271,100 @@
     <header class="topbar">
       <a href="./">→ رجوع للشات</a>
       <h1>الاختبارات</h1>
+      <button id="create-open" class="primary" type="button" hidden>➕ إنشاء امتحان</button>
+      <button id="history-btn" class="icon" type="button" title="سجل الامتحانات" hidden>🕘</button>
       <button id="bg-toggle" class="icon ghost" type="button" title="الخلفية">🎨</button>
-      <button id="history-btn" class="icon hist-btn" type="button" title="السجل" hidden>🕘</button>
     </header>
 
-    <!-- السجل: كل الأسئلة المضافة للشعبة، تتعدّل أو تتمسح من هنا (للأدمن بس) -->
+    <!-- إنشاء / تعديل امتحان (للأستاذ) -->
+    <section id="create-box" class="card" hidden>
+      <h2 id="create-title">➕ إنشاء امتحان</h2>
+      <div class="create-grid">
+        <select id="c-track" aria-label="الشعبة">
+          <option value="ar">عربي</option>
+          <option value="en">انجليزي</option>
+        </select>
+        <select id="c-level" aria-label="الصف">
+          <option value="1">الصف الأول</option>
+          <option value="2">الصف الثاني</option>
+          <option value="3">الصف الثالث</option>
+          <option value="4">الصف الرابع</option>
+        </select>
+      </div>
+      <input type="text" id="exam-title" maxlength="120" placeholder="اسم الامتحان أو اسم الماده">
+
+      <div class="bank-toolbar">
+        <strong>اختار الأسئلة</strong>
+        <button type="button" class="ghost" id="pick-all">☑️ تحديد الكل</button>
+      </div>
+      <div id="create-list"></div>
+
+      <div class="create-actions">
+        <label class="slot-label">نزّله في:
+          <select id="publish-slot" aria-label="الشات">
+            <option value="1">شات 1</option>
+            <option value="2">شات 2</option>
+            <option value="3">شات 3</option>
+            <option value="4">شات 4</option>
+            <option value="5">شات 5</option>
+          </select>
+        </label>
+        <span class="spacer"></span>
+        <button type="button" class="ghost" id="save-draft">💾 حفظ</button>
+        <button type="button" class="primary" id="save-publish">📤 حفظ ونشر</button>
+        <button type="button" class="ghost" id="create-cancel">إلغاء</button>
+      </div>
+    </section>
+
+    <!-- سجل الامتحانات (للأدمن): تفتحه وتعدّل أو تمسح أي امتحان -->
     <section id="history-box" class="card" hidden>
-      <h2>🕘 السجل <span class="count-pill" id="count-hist">0</span></h2>
-      <p class="hint-line">كل سؤال اتضاف للشعبة دي. تقدر تعدّله أو تمسحه من هنا.</p>
+      <h2>🕘 سجل الامتحانات <span class="count-pill" id="count-hist">0</span></h2>
       <div id="history-list"></div>
     </section>
 
-    <!-- لوحة الأستاذ: للأدمن والمرسل بس، وبتشتغل على شعبته هو بس -->
+    <!-- بنك أسئلة الشعبة (للأستاذ): إضافة وتعديل ونسخ وحذف -->
     <section id="staff-box" class="card" hidden>
-      <nav class="tabs" role="tablist">
-        <button class="tab active" type="button" data-tab="bank">📚 الأسئلة <span class="count-pill" id="count-staff">0</span></button>
-        <button class="tab" type="button" data-tab="exams">📝 الاختبارات</button>
-      </nav>
+      <h2>📚 أسئلة الشعبة <span class="count-pill" id="count-staff">0</span></h2>
+      <div id="bank-list"></div>
 
-      <!-- لسان الأسئلة -->
-      <div data-pane="bank">
-        <div class="card" style="box-shadow:none; margin-bottom:14px">
-          <h2 id="form-title">➕ سؤال جديد</h2>
-          <form id="add-form" class="q-form" autocomplete="off">
-            <textarea id="new-q" rows="2" maxlength="500" placeholder="نص السؤال"></textarea>
-            <div class="ans-row">
-              <input type="radio" name="new-ans" value="0" checked title="الإجابة الصح">
-              <input type="text" class="new-opt" maxlength="200" placeholder="الاختيار 1">
-            </div>
-            <div class="ans-row">
-              <input type="radio" name="new-ans" value="1" title="الإجابة الصح">
-              <input type="text" class="new-opt" maxlength="200" placeholder="الاختيار 2">
-            </div>
-            <div class="ans-row">
-              <input type="radio" name="new-ans" value="2" title="الإجابة الصح">
-              <input type="text" class="new-opt" maxlength="200" placeholder="الاختيار 3 (اختياري)">
-            </div>
-            <div class="ans-row">
-              <input type="radio" name="new-ans" value="3" title="الإجابة الصح">
-              <input type="text" class="new-opt" maxlength="200" placeholder="الاختيار 4 (اختياري)">
-            </div>
-            <p class="hint-line">علّم على الدايرة جنب الاختيار الصح. الاختيارات الفاضية بتتجاهل.</p>
-            <div class="form-btns">
-              <button type="submit" class="primary" id="save-btn">حفظ السؤال</button>
-              <button type="button" id="cancel-edit" class="ghost" hidden>إلغاء</button>
-            </div>
-          </form>
+      <h2 id="form-title" style="margin-top:18px">➕ سؤال جديد</h2>
+      <form id="add-form" class="q-form" autocomplete="off">
+        <textarea id="new-q" rows="2" maxlength="500" placeholder="نص السؤال"></textarea>
+        <div class="ans-row">
+          <input type="radio" name="new-ans" value="0" checked title="الإجابة الصح">
+          <input type="text" class="new-opt" maxlength="200" placeholder="الاختيار 1">
         </div>
-
-        <div class="bank-toolbar">
-          <strong>أسئلة الشعبة</strong>
-          <button type="button" class="ghost" id="pick-all">☑️ تحديد الكل</button>
+        <div class="ans-row">
+          <input type="radio" name="new-ans" value="1" title="الإجابة الصح">
+          <input type="text" class="new-opt" maxlength="200" placeholder="الاختيار 2">
         </div>
-        <div id="bank-list"></div>
-
-        <div class="exam-builder">
-          <h2 style="font-size:15px; color:var(--accent); margin:0 0 6px">📝 اعمل اختبار كامل</h2>
-          <p class="hint-line">علّم على الأسئلة اللي عايزها من فوق، واكتب اسم الاختبار، واضغط إنشاء.</p>
-          <div class="exam-make">
-            <input type="text" id="exam-title" maxlength="120" placeholder="اسم الاختبار (مثال: امتحان منتصف الترم)">
-            <button type="button" class="primary" id="exam-make">➕ إنشاء الاختبار</button>
-          </div>
+        <div class="ans-row">
+          <input type="radio" name="new-ans" value="2" title="الإجابة الصح">
+          <input type="text" class="new-opt" maxlength="200" placeholder="الاختيار 3 (اختياري)">
         </div>
-      </div>
-
-      <!-- لسان الاختبارات -->
-      <div data-pane="exams" hidden>
-        <div id="exam-list"></div>
-      </div>
+        <div class="ans-row">
+          <input type="radio" name="new-ans" value="3" title="الإجابة الصح">
+          <input type="text" class="new-opt" maxlength="200" placeholder="الاختيار 4 (اختياري)">
+        </div>
+        <p class="hint-line">علّم على الدايرة جنب الاختيار الصح. الاختيارات الفاضية بتتجاهل.</p>
+        <div class="form-btns">
+          <button type="submit" class="primary" id="save-btn">حفظ السؤال</button>
+          <button type="button" id="cancel-edit" class="ghost" hidden>إلغاء</button>
+        </div>
+      </form>
     </section>
 
+    <!-- اختيار الشعبة والمستوى للطالب -->
     <div class="picker">
       <select id="track" aria-label="الشعبة">
         <option value="ar">عربي</option>
         <option value="en">انجليزي</option>
       </select>
       <select id="level" aria-label="المستوى">
-        <option value="1">الأول</option>
-        <option value="2">الثاني</option>
-        <option value="3">الثالث</option>
-        <option value="4">الرابع</option>
+        <option value="1">الصف الأول</option>
+        <option value="2">الصف الثاني</option>
+        <option value="3">الصف الثالث</option>
+        <option value="4">الصف الرابع</option>
       </select>
     </div>
 
