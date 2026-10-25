@@ -830,8 +830,6 @@ function pfText() {
   };
 }
 
-$('set-profile').textContent = pfText().setBtn;
-
 function closeProfile() {
   $('profile-modal').classList.add('hidden');
 }
@@ -853,10 +851,6 @@ async function openProfile() {
   $('pf-email').textContent = data && data.user ? (data.user.email || '') : '';
 }
 
-$('set-profile').onclick = () => {
-  $('settings-modal').classList.add('hidden');
-  openProfile();
-};
 $('profile-close').onclick = closeProfile;
 // الضغط على صورة المستخدم في الهيدر بيفتح الملف الشخصي
 $('user-box').onclick = () => openProfile();
