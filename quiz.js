@@ -85,6 +85,16 @@ async function checkUser() {
   };
 }
 
+// ---------- التبويبات (الأسئلة / الاختبارات) ----------
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === name);
+  });
+  document.querySelectorAll('[data-pane]').forEach(p => {
+    p.hidden = p.dataset.pane !== name;
+  });
+}
+
 // ---------- عرض الأسئلة للطالب ----------
 function renderQuiz() {
   const form = $('quiz');
@@ -224,6 +234,7 @@ async function loadExam() {
   }
   setStatus(txt(`عدد الأسئلة: ${questions.length}`, `Questions: ${questions.length}`));
   renderQuiz();
+  $('print-btn').hidden = false;
 }
 
 // ---------- تحميل الشعبة العادية ----------
@@ -308,6 +319,9 @@ async function loadBank() {
     const btns = el('div', 'row-btns');
     const edit = btn('✏️ تعديل');
     edit.onclick = () => startEdit(row);
+    const copy = btn('📋 نسخ');
+    copy.title = 'نسخ السؤال لسؤال جديد';
+    copy.onclick = () => duplicateQuestion(row);
     const del = btn('🗑️ حذف', 'danger');
     del.onclick = async () => {
       if (!confirm('تمسح السؤال ده؟')) return;
@@ -316,6 +330,7 @@ async function loadBank() {
       await loadRoom();
     };
     btns.appendChild(edit);
+    btns.appendChild(copy);
     btns.appendChild(del);
 
     div.appendChild(top);
@@ -325,9 +340,17 @@ async function loadBank() {
   });
 }
 
-// تعديل سؤال: بنملّي الفورم بيه
-function startEdit(row) {
-  editingId = row.id;
+// تحديد الكل / إلغاء التحديد
+function togglePickAll() {
+  const boxes = [...document.querySelectorAll('#bank-list input.pick')];
+  if (!boxes.length) return;
+  const allOn = boxes.every(b => b.checked);
+  boxes.forEach(b => { b.checked = !allOn; });
+  $('pick-all').textContent = allOn ? '☑️ تحديد الكل' : '⬜ إلغاء التحديد';
+}
+
+// ---------- فورم السؤال ----------
+function fillForm(row) {
   $('new-q').value = row.question;
   document.querySelectorAll('.new-opt').forEach((inp, i) => {
     inp.value = row.options[i] || '';
@@ -335,10 +358,27 @@ function startEdit(row) {
   document.querySelectorAll('input[name="new-ans"]').forEach(r => {
     r.checked = Number(r.value) === row.answer;
   });
+  $('add-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// تعديل سؤال موجود
+function startEdit(row) {
+  showTab('bank');
+  editingId = row.id;
+  fillForm(row);
   $('form-title').textContent = '✏️ تعديل السؤال';
   $('save-btn').textContent = '💾 حفظ التعديل';
   $('cancel-edit').hidden = false;
-  $('add-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// نسخ سؤال: بيتملّي الفورم، وبيتحفظ كسؤال جديد
+function duplicateQuestion(row) {
+  showTab('bank');
+  editingId = null;
+  fillForm(row);
+  $('form-title').textContent = '📋 سؤال منسوخ (جديد)';
+  $('save-btn').textContent = 'حفظ السؤال';
+  $('cancel-edit').hidden = false;
 }
 
 function stopEdit() {
@@ -381,7 +421,7 @@ async function makeExam() {
   const picked = [...document.querySelectorAll('#bank-list input.pick:checked')].map(c => Number(c.value));
 
   if (!title) return alert('اكتب اسم الاختبار');
-  if (!picked.length) return alert('علّم على سؤال واحد على الأقل من الأسئلة اللي فوق');
+  if (!picked.length) return alert('علّم على سؤال واحد على الأقل من أسئلة الشعبة');
 
   // نحافظ على ترتيب البنك
   const ordered = bank.filter(r => picked.includes(r.id)).map(r => r.id);
@@ -390,7 +430,9 @@ async function makeExam() {
 
   $('exam-title').value = '';
   document.querySelectorAll('#bank-list input.pick').forEach(c => { c.checked = false; });
+  $('pick-all').textContent = '☑️ تحديد الكل';
   await loadExams();
+  showTab('exams');
 }
 
 async function loadExams() {
@@ -407,7 +449,7 @@ async function loadExams() {
   }
   if (!data || !data.length) {
     const p = el('p', 'empty-line');
-    p.textContent = 'مفيش اختبارات للشعبة دي لسه';
+    p.textContent = 'مفيش اختبارات للشعبة دي لسه. اعملها من لسان الأسئلة.';
     box.appendChild(p);
     return;
   }
@@ -423,15 +465,23 @@ async function loadExams() {
 
     const row = el('div', 'row-btns');
 
-    const copy = btn('🔗 نسخ الرابط');
-    copy.onclick = async () => {
-      try {
-        await navigator.clipboard.writeText(link);
-        alert('اتنسخ الرابط');
-      } catch {
-        prompt('انسخ الرابط ده:', link);
+    const preview = btn('👁️ معاينة');
+    preview.title = 'شوف الاختبار زي ما الطالب هيشوفه';
+    preview.onclick = () => window.open(link, '_blank', 'noopener');
+
+    const share = btn('📤 مشاركة');
+    share.onclick = async () => {
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: ex.title, text: `📝 امتحان: ${ex.title}`, url: link });
+          return;
+        } catch { /* المستخدم لغى المشاركة */ return; }
       }
+      copyLink(link);
     };
+
+    const copy = btn('🔗 نسخ الرابط');
+    copy.onclick = () => copyLink(link);
 
     const slot = el('select');
     for (let n = 1; n <= 5; n++) {
@@ -466,6 +516,8 @@ async function loadExams() {
       await loadExams();
     };
 
+    row.appendChild(preview);
+    row.appendChild(share);
     row.appendChild(copy);
     row.appendChild(slot);
     row.appendChild(send);
@@ -478,7 +530,16 @@ async function loadExams() {
   });
 }
 
-// ---------- السجل: كل الأسئلة المضافة للشعبة بالتاريخ، تتعدّل أو تتمسح من هنا ----------
+async function copyLink(link) {
+  try {
+    await navigator.clipboard.writeText(link);
+    alert('اتنسخ الرابط');
+  } catch {
+    prompt('انسخ الرابط ده:', link);
+  }
+}
+
+// ---------- السجل: كل الأسئلة المضافة للشعبة بالتاريخ (للأدمن) ----------
 function toggleHistory() {
   const box = $('history-box');
   const opening = box.hidden;
@@ -549,16 +610,35 @@ async function init() {
   $('level').addEventListener('change', loadRoom);
   $('submit').addEventListener('click', submitQuiz);
   $('reset').addEventListener('click', resetQuiz);
+  $('print-btn').addEventListener('click', () => window.print());
   $('add-form').addEventListener('submit', saveQuestion);
-  $('cancel-edit').addEventListener('click', () => { stopEdit(); });
+  $('cancel-edit').addEventListener('click', stopEdit);
+  $('pick-all').addEventListener('click', togglePickAll);
   $('exam-make').addEventListener('click', makeExam);
   $('history-btn').addEventListener('click', toggleHistory);
+
+  // خلفية: متحركة (الافتراضي) أو هادية، والاختيار بيتحفظ
+  const applyBg = () => {
+    let calm = false;
+    try { calm = localStorage.getItem('quizBgCalm') === '1'; } catch {}
+    document.body.classList.toggle('calm', calm);
+  };
+  $('bg-toggle').addEventListener('click', () => {
+    const nowCalm = !document.body.classList.contains('calm');
+    try { localStorage.setItem('quizBgCalm', nowCalm ? '1' : '0'); } catch {}
+    applyBg();
+  });
+  applyBg();
+
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => showTab(t.dataset.tab));
+  });
 
   let s;
   try {
     s = await checkUser();
   } catch {
-    s = { loggedIn: false, staff: false, id: null };
+    s = { loggedIn: false, staff: false, admin: false, id: null };
   }
   loggedIn = s.loggedIn;
   isStaff = s.staff;
@@ -575,6 +655,7 @@ async function init() {
   }
 
   $('staff-box').hidden = !isStaff;
+  showTab('bank');
   await loadRoom();
 }
 
