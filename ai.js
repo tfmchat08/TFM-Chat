@@ -82,7 +82,7 @@ function applySpeakBtn() {
 function setMicUI() {
   const b = $('ai-mic');
   if (!b) return;
-  b.textContent = aiListening ? '⏹️' : '🎙️';
+  // الأيقونة بتفضل زي ما هي، والحالة بتتغير بالكلاس بس (زي زرار الريكورد في الشات)
   b.classList.toggle('mic-on', aiListening);
   b.title = aiListening
     ? (aiLangMode === 'en' ? 'Stop' : 'إيقاف')

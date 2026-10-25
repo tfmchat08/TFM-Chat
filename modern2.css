@@ -391,17 +391,71 @@ input:focus, select:focus, textarea:focus {
 }
 
 .auth-credits {
-  position: fixed;
-  left: 14px;
-  bottom: 12px;
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
   font-size: 12px;
   line-height: 1.7;
   opacity: 0.85;
-  z-index: 1;
 }
 
 .auth-credits b {
   color: var(--accent, #c4283f);
+}
+
+/* ===== أزرار فهيم: نفس شكل أزرار الشات ===== */
+#ai-chat-screen .ai-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+#ai-chat-screen .ai-composer button {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#ai-chat-screen #ai-input {
+  flex: 1;
+  min-width: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+}
+
+#ai-chat-screen #ai-attach,
+#ai-chat-screen #ai-mic {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: inherit;
+}
+
+#ai-chat-screen #ai-send {
+  background: linear-gradient(135deg, var(--accent), var(--bubble-mine-b));
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(196, 40, 63, 0.35);
+}
+
+/* الميكروفون وهو بيسجل: نفس الدايرة الحمرا النابضة */
+#ai-chat-screen #ai-mic.mic-on {
+  color: #fff;
+  background: linear-gradient(135deg, #e11d48, #9e0f2e);
+  border-color: transparent;
+  animation: micPulse 1.4s ease-out infinite;
+}
+
+[data-theme="light"] #ai-chat-screen #ai-attach,
+[data-theme="light"] #ai-chat-screen #ai-mic {
+  background: rgba(196, 40, 63, 0.06);
+  border-color: rgba(196, 40, 63, 0.15);
 }
 
 /* احترام إعداد تقليل الحركة في الجهاز */
