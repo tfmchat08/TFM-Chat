@@ -166,6 +166,21 @@ function currentRoom() {
   return `${track}-${level}`;
 }
 
+// الشات اللي جوه الشعبة (من 1 لـ 5)
+function readChatSlot() {
+  try {
+    const n = Number(localStorage.getItem('chatSlot'));
+    return n >= 1 && n <= 5 ? n : 1;
+  } catch {
+    return 1;
+  }
+}
+let currentChatSlot = readChatSlot();
+
+function saveChatSlot() {
+  try { localStorage.setItem('chatSlot', String(currentChatSlot)); } catch {}
+}
+
 function saveRoom() {
   try {
     localStorage.setItem('track', track);
@@ -1163,6 +1178,7 @@ async function loadMessages() {
   const { data, error } = await sb.from('messages')
     .select('*, profiles(display_name, avatar_url)')
     .eq('room', currentRoom())
+    .eq('chat_slot', currentChatSlot)
     .order('created_at', { ascending: true })
     .limit(300);
   if (error) {
@@ -1176,6 +1192,7 @@ async function loadMessages() {
   renderPinned();
   await loadReactions(data.map(m => m.id));
   scrollBottom();
+  if (window.renderChatTabs) window.renderChatTabs();
 }
 
 // ---------- الرد ----------
@@ -1205,6 +1222,7 @@ async function sendMessage(fileUrl = null, fileType = null) {
     file_url: fileUrl,
     file_type: fileType,
     room: currentRoom(),
+    chat_slot: currentChatSlot,
     reply_to: replyingTo
   });
   if (error) return alert(t('sendFail') + error.message);
@@ -1678,7 +1696,7 @@ function subscribeToMessages() {
   sb.channel('messages-channel')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async payload => {
       // نعرض بس الرسايل اللي في الشعبة والمستوى اللي اخترته
-      if (payload.new.room !== currentRoom()) return;
+      if (payload.new.room !== currentRoom() || payload.new.chat_slot !== currentChatSlot) return;
 
       const { data } = await sb.from('messages')
         .select('*, profiles(display_name, avatar_url)')

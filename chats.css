@@ -1,0 +1,86 @@
+/* ---------- شريط الشاتات الخمسة (فوق، من اليمين) ---------- */
+.chat-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px 10px;
+  justify-content: flex-start;
+}
+
+.chat-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 3px 12px 3px 3px;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chat-tab img,
+.chat-tab-init {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-tab-init {
+  background: rgba(255, 255, 255, 0.15);
+  font-weight: 700;
+}
+
+.chat-tab.active {
+  background: var(--accent, #6e0819);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* ---------- إعدادات الشاتات للأدمن ---------- */
+.chat-admin-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chat-admin-row input[type="text"],
+.chat-admin-row input:not([type]) {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+/* ---------- الإعدادات تطلع من الشمال ---------- */
+#settings-modal:not(.hidden) {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+#settings-modal .modal-box {
+  height: 100%;
+  max-height: 100%;
+  width: min(320px, 85vw);
+  margin: 0;
+  border-radius: 0 18px 18px 0;
+  overflow-y: auto;
+}
+
+#settings-modal:not(.hidden) .modal-box {
+  animation: settingsFromLeft 0.25s ease;
+}
+
+@keyframes settingsFromLeft {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
