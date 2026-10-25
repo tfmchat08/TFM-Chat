@@ -122,7 +122,6 @@
 
   // ---------- الأحداث ----------
   el('set-theme')?.addEventListener('click', () => {
-    el('settings-modal')?.classList.add('hidden');
     toggleTheme(); // دالة app.js: بتبدّل الوضع وبتحفظه
     refreshLabels();
   });

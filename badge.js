@@ -85,6 +85,7 @@
     await window.loadBadges();
     if (!hasRow(me, key)) return;
     toast(`🎉 فتحت بادج "${CATALOG[key].ar}" ${CATALOG[key].icon}`);
+    if (window.fxConfetti) window.fxConfetti(150);
     await refreshAll();
   }
 

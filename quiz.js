@@ -180,6 +180,7 @@ async function submitQuiz() {
   // علامة كاملة = بادج "العبقري" (بيتفتح لما يرجع للشات)
   if (total > 0 && correct === total && unanswered === 0) {
     try { localStorage.setItem('quizPerfect', '1'); } catch (e) { /* مش مهم */ }
+    if (window.fxConfetti) window.fxConfetti(150);
   }
 
   $('submit').hidden = true;
