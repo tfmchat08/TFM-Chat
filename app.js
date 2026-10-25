@@ -1171,11 +1171,20 @@ $('msg-input').addEventListener('keydown', e => {
 });
 
 // ---------- رفع الملفات ----------
+const MAX_UPLOAD_MB = 10;
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+
 $('attach-btn').onclick = () => $('file-input').click();
 
 $('file-input').onchange = async () => {
   const file = $('file-input').files[0];
   if (!file || !currentProfile) return;
+
+  if (file.size > MAX_UPLOAD_BYTES) {
+    alert(`الملف كبير. الحد الأقصى ${MAX_UPLOAD_MB} ميجا`);
+    $('file-input').value = '';
+    return;
+  }
 
   const safeName = file.name.replace(/[^\w.\-]/g, '_');
   const path = `${currentProfile.id}/${Date.now()}_${safeName}`;
@@ -1244,6 +1253,9 @@ $('mic-btn').onclick = async () => {
       const type = recorder.mimeType || 'audio/webm';
       const ext = type.includes('mp4') ? 'mp4' : 'webm';
       const blob = new Blob(chunks, { type });
+      if (blob.size > MAX_UPLOAD_BYTES) {
+        return alert(`التسجيل كبير. الحد الأقصى ${MAX_UPLOAD_MB} ميجا، سجّل مقطع أقصر`);
+      }
       const path = `${currentProfile.id}/${Date.now()}_voice.${ext}`;
       const { error } = await sb.storage.from('uploads').upload(path, blob, { contentType: type });
       if (error) return alert(t('uploadFail') + error.message);
