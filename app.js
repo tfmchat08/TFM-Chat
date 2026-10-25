@@ -650,9 +650,8 @@ $('members-close').onclick = () => $('members-panel').classList.add('hidden');
 async function loadMembers() {
   const box = $('members-list');
   if (window.loadBadges) await window.loadBadges();
-  const { data, error } = await sb.from('profiles')
-    .select('id, display_name, avatar_url, role, is_banned')
-    .order('display_name', { ascending: true });
+  // أعضاء الشعبة دي بس (من السيرفر)
+  const { data, error } = await sb.rpc('room_members', { p_room: currentRoom() });
 
   if (error) {
     box.innerHTML = `<p class="empty">${esc(error.message)}</p>`;
