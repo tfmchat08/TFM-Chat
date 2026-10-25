@@ -948,12 +948,13 @@ document.addEventListener('visibilitychange', () => {
 // ---------- مؤشر "بيكتب" و"بيسجل صوت" ----------
 // بيستخدم Broadcast في Supabase، فمش محتاج أي جدول جديد
 function joinTyping() {
-  const room = currentRoom();
-  if (typingChannel && typingRoom === room) return;
+  // كل شات (شعبة + رقم الشات) ليه قناة كتابة لوحده
+  const key = currentRoom() + '-' + currentChatSlot;
+  if (typingChannel && typingRoom === key) return;
   leaveTyping();
 
-  typingRoom = room;
-  typingChannel = sb.channel('typing-' + room, { config: { broadcast: { self: false } } })
+  typingRoom = key;
+  typingChannel = sb.channel('typing-' + key, { config: { broadcast: { self: false } } })
     .on('broadcast', { event: 'typing' }, ({ payload }) => {
       if (!payload || !currentProfile || payload.id === currentProfile.id) return;
       if (payload.kind === 'stop') typers.delete(payload.id);
