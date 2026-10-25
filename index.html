@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="emoji.css?v=1">
   <link rel="stylesheet" href="modern.css?v=1">
   <link rel="stylesheet" href="chats.css?v=1">
-  <link rel="stylesheet" href="modern2.css?v=12">
+  <link rel="stylesheet" href="modern2.css?v=13">
 </head>
 <body>
 
@@ -108,6 +108,7 @@
       </div>
       <div class="header-actions">
         <button id="ai-open" class="ghost gear ai-head-btn" title="فهيم"><span class="ico ico-robot"></span></button>
+        <button id="materials-btn" class="ghost gear" title="ملفات المادة">📚</button>
         <button id="members-btn" class="ghost gear" title="الأعضاء"><span class="ico ico-users"></span></button>
         <button id="settings-btn" class="ghost gear" title="الإعدادات"><span class="ico ico-gear"></span></button>
       </div>
@@ -154,6 +155,21 @@
     </div>
     <div id="members-list" class="members-body"></div>
   </aside>
+
+  <!-- ملفات المادة (لكل شعبة) -->
+  <div id="materials-modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>📚 ملفات المادة</h3>
+        <button id="materials-close" class="ghost">✕</button>
+      </div>
+      <div id="materials-upload" class="mat-upload hidden">
+        <label class="primary mat-upload-btn" for="materials-input">📤 ارفع ملف للشعبة</label>
+        <input id="materials-input" type="file" hidden>
+      </div>
+      <div id="materials-list" class="mat-list"></div>
+    </div>
+  </div>
 
 
   <!-- قايمة الإعدادات -->
@@ -375,5 +391,6 @@
   <script src="chats.js?v=2"></script>
   <script src="badge.js?v=4"></script>
   <script src="notify.js?v=1"></script>
+  <script src="materials.js?v=1"></script>
 </body>
 </html>
