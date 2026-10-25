@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="emoji.css?v=1">
   <link rel="stylesheet" href="modern.css?v=1">
   <link rel="stylesheet" href="chats.css?v=1">
-  <link rel="stylesheet" href="modern2.css?v=13">
+  <link rel="stylesheet" href="modern2.css?v=14">
 </head>
 <body>
 
@@ -162,6 +162,16 @@
       <div class="modal-head">
         <h3>📚 ملفات المادة</h3>
         <button id="materials-close" class="ghost">✕</button>
+      </div>
+      <div id="assign-box" class="assign-box">
+        <h4 class="assign-title-h">📝 الواجبات والمواعيد</h4>
+        <form id="assign-form" class="assign-form">
+          <input id="assign-title" placeholder="اسم الواجب" maxlength="80" required>
+          <input id="assign-due" type="datetime-local">
+          <textarea id="assign-details" placeholder="تفاصيل (اختياري)" rows="2"></textarea>
+          <button type="submit" class="primary">➕ ضيف الواجب</button>
+        </form>
+        <div id="assign-list" class="mat-list"></div>
       </div>
       <div id="materials-upload" class="mat-upload hidden">
         <label class="primary mat-upload-btn" for="materials-input">📤 ارفع ملف للشعبة</label>
@@ -391,6 +401,6 @@
   <script src="chats.js?v=2"></script>
   <script src="badge.js?v=4"></script>
   <script src="notify.js?v=1"></script>
-  <script src="materials.js?v=1"></script>
+  <script src="materials.js?v=2"></script>
 </body>
 </html>

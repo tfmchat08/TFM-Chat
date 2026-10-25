@@ -82,10 +82,85 @@
     await load();
   }
 
+  // ===== الواجبات والمواعيد =====
+  const asList = document.getElementById('assign-list');
+  const asForm = document.getElementById('assign-form');
+
+  function fmtDue(iso) {
+    if (!iso) return 'بدون موعد';
+    try { return new Date(iso).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return iso; }
+  }
+
+  async function loadAssign() {
+    if (!asList) return;
+    const { data, error } = await sb.from('room_assignments')
+      .select('id, title, details, due_at, created_by')
+      .eq('room', currentRoom())
+      .order('due_at', { ascending: true, nullsFirst: false });
+    if (error) {
+      asList.innerHTML = `<p class="empty">${esc2(error.message)}</p>`;
+      return;
+    }
+    if (!data || !data.length) {
+      asList.innerHTML = '<p class="empty">مفيش واجبات للشعبة دي لسه</p>';
+      return;
+    }
+    asList.innerHTML = '';
+    const now = Date.now();
+    data.forEach((a) => {
+      const row = document.createElement('div');
+      row.className = 'mat-row assign-row';
+
+      const info = document.createElement('div');
+      info.className = 'mat-link';
+      const late = a.due_at && new Date(a.due_at).getTime() < now;
+      info.innerHTML = `<b>📝 ${esc2(a.title)}</b>${late ? ' <span class="late">(انتهى)</span>' : ''}`
+        + `<br><small>⏰ ${esc2(fmtDue(a.due_at))}</small>`
+        + (a.details ? `<br><small>${esc2(a.details)}</small>` : '');
+      row.appendChild(info);
+
+      const mine = currentProfile && a.created_by === currentProfile.id;
+      if (mine || (currentProfile && currentProfile.role === 'admin')) {
+        const del = document.createElement('button');
+        del.className = 'danger-btn mat-del';
+        del.type = 'button';
+        del.textContent = '🗑️';
+        del.onclick = async () => {
+          if (!confirm(`تمسح الواجب "${a.title}"؟`)) return;
+          const { error: delErr } = await sb.from('room_assignments').delete().eq('id', a.id);
+          if (delErr) return alert(delErr.message);
+          await loadAssign();
+        };
+        row.appendChild(del);
+      }
+      asList.appendChild(row);
+    });
+  }
+
+  if (asForm) {
+    asForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('assign-title').value.trim();
+      const details = document.getElementById('assign-details').value.trim();
+      const dueRaw = document.getElementById('assign-due').value;
+      if (title.length < 2) return alert('اكتب اسم الواجب');
+      const { error } = await sb.from('room_assignments').insert({
+        room: currentRoom(),
+        title,
+        details: details || null,
+        due_at: dueRaw ? new Date(dueRaw).toISOString() : null,
+      });
+      if (error) return alert(error.message);
+      asForm.reset();
+      await loadAssign();
+    };
+  }
+
   btn.onclick = async () => {
     panel.classList.remove('hidden');
     uploadBox.classList.toggle('hidden', !canUpload());
-    await load();
+    if (asForm) asForm.classList.toggle('hidden', !canUpload());
+    await Promise.all([load(), loadAssign()]);
   };
   document.getElementById('materials-close').onclick = () => panel.classList.add('hidden');
 

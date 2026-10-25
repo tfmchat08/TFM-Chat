@@ -596,6 +596,41 @@ input:focus, select:focus, textarea:focus {
   padding: 4px 8px;
 }
 
+/* ===== الواجبات ===== */
+.assign-box {
+  margin-bottom: 14px;
+}
+
+.assign-title-h {
+  margin: 6px 0 10px;
+}
+
+.assign-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.assign-form.hidden {
+  display: none;
+}
+
+.assign-form input,
+.assign-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.assign-row .mat-link {
+  white-space: normal;
+}
+
+.late {
+  color: #e11d48;
+  font-weight: 700;
+}
+
 /* احترام إعداد تقليل الحركة في الجهاز */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
