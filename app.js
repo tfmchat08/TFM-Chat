@@ -409,8 +409,6 @@ $('auth-submit').onclick = async () => {
 
   // إنشاء حساب
   if (!validPassword(password)) return setMsg('auth-msg', t('pwInvalid'));
-  const file = $('signup-avatar-input').files[0];
-  if (!file && !window.pickedAvatar) return setMsg('auth-msg', t('avatarReq'));
 
   signingUp = true;
   const { data, error } = await sb.auth.signUp({
@@ -426,12 +424,6 @@ $('auth-submit').onclick = async () => {
     signingUp = false;
     setAuthMode('login');
     return setMsg('auth-msg', t('checkEmail'), false);
-  }
-  try {
-    await saveAvatarChoice(file, data.user.id);
-  } catch (e) {
-    signingUp = false;
-    return setMsg('auth-msg', t('avatarFail') + e.message);
   }
   signingUp = false;
   await enterChat(data.user.id);

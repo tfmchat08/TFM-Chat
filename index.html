@@ -27,13 +27,17 @@
   <link rel="stylesheet" href="emoji.css?v=1">
   <link rel="stylesheet" href="modern.css?v=1">
   <link rel="stylesheet" href="chats.css?v=1">
-  <link rel="stylesheet" href="modern2.css?v=6">
+  <link rel="stylesheet" href="modern2.css?v=7">
 </head>
 <body>
 
   <!-- شاشة الدخول وإنشاء الحساب -->
   <div id="auth-screen" class="screen">
     <div class="card">
+      <div class="auth-prefs">
+        <button class="ghost lang-toggle" type="button"></button>
+        <button class="ghost theme-toggle" type="button"></button>
+      </div>
       <img src="icon-512.png" alt="TFM" class="logo">
       <h1>TFM Chat</h1>
       <div class="auth-tabs">
@@ -65,9 +69,8 @@
       <p id="pw-hint" class="hint hidden" data-i18n="pwRule"></p>
 
       <div id="signup-box" class="signup-box hidden">
-        <p class="hint" data-i18n="chooseAvatarSignup"></p>
         <img id="signup-preview" class="preview hidden" alt="">
-        <input id="signup-avatar-input" type="file" accept="image/*">
+        <input id="signup-avatar-input" type="file" accept="image/*" hidden>
       </div>
 
       <button id="auth-submit" class="primary"></button>
@@ -75,6 +78,13 @@
       <button id="forgot-btn" class="link-btn" data-i18n="forgot"></button>
       <button id="contact-open" class="ghost" data-i18n="contact"></button>
       <p id="auth-msg" class="msg-text"></p>
+    </div>
+
+    <div class="auth-credits">
+      <div>Developed by <b>Ahmed</b></div>
+      <div>للتواصل:</div>
+      <div dir="ltr">📞 010-325-12602</div>
+      <div dir="ltr">✉️ business.developer0807@gmail.com</div>
     </div>
   </div>
 
@@ -352,14 +362,14 @@
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
-  <script src="app.js?v=24"></script>
+  <script src="app.js?v=25"></script>
   <script src="ai.js?v=13"></script>
   <script src="gate.js?v=3"></script>
   <script src="ai-warn.js?v=3"></script>
   <script src="prefs.js?v=2"></script>
   <script src="account.js?v=1"></script>
   <script src="quiz-link.js?v=1"></script>
-  <script src="default-avatars.js?v=1"></script>
+  <script src="default-avatars.js?v=2"></script>
   <script src="chats.js?v=2"></script>
 </body>
 </html>

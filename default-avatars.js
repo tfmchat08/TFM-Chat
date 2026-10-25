@@ -64,14 +64,7 @@
   `;
   document.head.appendChild(style);
 
-  // في إنشاء الحساب
-  const signupBox = document.getElementById('signup-box');
-  if (signupBox) {
-    buildPicker(signupBox, null, () => {
-      document.getElementById('signup-avatar-input').value = '';
-      document.getElementById('signup-preview').classList.add('hidden');
-    });
-  }
+  // إنشاء الحساب مفيهوش اختيار صورة دلوقتي: الصورة والاسم بيتطلبوا بعد الدخول (بوابة البروفايل)
   document.getElementById('signup-avatar-input').addEventListener('change', () => {
     if (document.getElementById('signup-avatar-input').files[0]) clearSelection();
   });

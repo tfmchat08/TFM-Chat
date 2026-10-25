@@ -376,6 +376,34 @@ input:focus, select:focus, textarea:focus {
   border-color: rgba(196, 40, 63, 0.15);
 }
 
+/* ===== شاشة الدخول: أزرار اللغة والوضع + بيانات التواصل ===== */
+.auth-prefs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.auth-prefs button {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 999px;
+}
+
+.auth-credits {
+  position: fixed;
+  left: 14px;
+  bottom: 12px;
+  font-size: 12px;
+  line-height: 1.7;
+  opacity: 0.85;
+  z-index: 1;
+}
+
+.auth-credits b {
+  color: var(--accent, #c4283f);
+}
+
 /* احترام إعداد تقليل الحركة في الجهاز */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
