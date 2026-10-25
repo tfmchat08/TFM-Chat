@@ -48,6 +48,7 @@
       font-size: 15px;
     }
     #status { color: var(--muted); margin-bottom: 12px; font-size: 14px; }
+    #exam-head { font-size: 20px; font-weight: bold; color: var(--accent); margin-bottom: 10px; }
     .q {
       background: var(--card);
       border-radius: 12px;
@@ -66,15 +67,18 @@
     .actions { display: flex; gap: 10px; margin: 16px 0; flex-wrap: wrap; }
     .actions button,
     .staff-box button {
-      padding: 12px 20px;
+      padding: 10px 16px;
       border-radius: 10px;
-      font-size: 16px;
+      font-size: 15px;
       cursor: pointer;
       border: 1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
     }
     .actions .primary,
     .staff-box .primary { background: var(--accent); color: #fff; }
-    .actions .ghost { background: transparent; color: var(--accent); }
+    .actions button { padding: 12px 20px; font-size: 16px; }
+    .staff-box .danger { color: var(--bad); border-color: var(--bad); }
     #result {
       background: var(--card);
       border-radius: 12px;
@@ -89,9 +93,9 @@
       background: var(--card);
       border-radius: 12px;
       padding: 14px;
-      margin-top: 24px;
+      margin-bottom: 20px;
     }
-    .staff-box h2 { font-size: 17px; color: var(--accent); margin: 4px 0 10px; }
+    .staff-box h2 { font-size: 17px; color: var(--accent); margin: 6px 0 10px; }
     .staff-box textarea,
     .staff-box input[type="text"] {
       width: 100%;
@@ -107,24 +111,26 @@
     .ans-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
     .ans-row input[type="text"] { margin-bottom: 0; flex: 1; }
     .ans-row input[type="radio"] { width: 18px; height: 18px; }
-    .staff-box .hint-line { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
-    .staff-item {
+    .hint-line { font-size: 13px; color: var(--muted); margin: 4px 0 10px; }
+    .form-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .bank-item,
+    .exam-item {
       border: 1px solid var(--muted);
       border-radius: 10px;
       padding: 10px;
       margin-bottom: 10px;
     }
-    .staff-q { font-weight: bold; margin-bottom: 6px; }
-    .staff-opts { font-size: 14px; margin-bottom: 8px; line-height: 1.8; }
-    .staff-item .del {
-      padding: 6px 12px;
-      font-size: 14px;
-      background: transparent;
-      color: var(--bad);
-      border: 1px solid var(--bad);
-      border-radius: 8px;
-      cursor: pointer;
-    }
+    .bank-top { display: flex; gap: 8px; align-items: flex-start; }
+    .bank-top input[type="checkbox"] { width: 18px; height: 18px; margin-top: 4px; flex: 0 0 auto; }
+    .bank-q { font-weight: bold; flex: 1; }
+    .bank-opts { font-size: 14px; margin: 6px 0 8px; line-height: 1.8; }
+    .row-btns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .row-btns button { padding: 6px 12px; font-size: 14px; border-radius: 8px; }
+    .row-btns select { padding: 6px; border-radius: 8px; font-size: 14px; }
+    .exam-make { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+    .exam-make input { flex: 1; min-width: 160px; margin-bottom: 0; }
+    .exam-meta { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .empty-line { color: var(--muted); font-size: 14px; }
   </style>
 </head>
 <body>
@@ -133,32 +139,12 @@
     <h1>الاختبارات</h1>
   </header>
 
-  <div class="picker">
-    <select id="track" aria-label="الشعبة">
-      <option value="ar">عربي</option>
-      <option value="en">انجليزي</option>
-    </select>
-    <select id="level" aria-label="المستوى">
-      <option value="1">الأول</option>
-      <option value="2">الثاني</option>
-      <option value="3">الثالث</option>
-      <option value="4">الرابع</option>
-    </select>
-  </div>
-
-  <div id="status"></div>
-  <form id="quiz" autocomplete="off"></form>
-
-  <div class="actions">
-    <button id="submit" class="primary" type="button" hidden>تصحيح</button>
-    <button id="reset" class="ghost" type="button" hidden>اختبار جديد</button>
-  </div>
-
-  <div id="result" hidden></div>
-
-  <!-- لوحة الأستاذ: بتظهر للأدمن والمرسل بس -->
+  <!-- لوحة الأستاذ: بتظهر للأدمن والمرسل بس، وبتشتغل على شعبته هو بس -->
   <section id="staff-box" class="staff-box" hidden>
-    <h2>➕ إضافة سؤال للشعبة دي</h2>
+    <h2>📚 كل أسئلة الشعبة (<span id="count-staff">0</span>)</h2>
+    <div id="bank-list"></div>
+
+    <h2 id="form-title" style="margin-top:18px">➕ سؤال جديد</h2>
     <form id="add-form" autocomplete="off">
       <textarea id="new-q" rows="2" maxlength="500" placeholder="نص السؤال"></textarea>
       <div class="ans-row">
@@ -178,12 +164,44 @@
         <input type="text" class="new-opt" maxlength="200" placeholder="الاختيار 4 (اختياري)">
       </div>
       <p class="hint-line">علّم على الدايرة جنب الاختيار الصح. الاختيارات الفاضية بتتجاهل.</p>
-      <button type="submit" class="primary">حفظ السؤال</button>
+      <div class="form-btns">
+        <button type="submit" class="primary" id="save-btn">حفظ السؤال</button>
+        <button type="button" id="cancel-edit" hidden>إلغاء التعديل</button>
+      </div>
     </form>
 
-    <h2 style="margin-top:18px">📋 الأسئلة الموجودة (<span id="count-staff">0</span>)</h2>
-    <div id="staff-list"></div>
+    <h2 style="margin-top:22px">📝 الاختبارات الكاملة</h2>
+    <p class="hint-line">علّم على الأسئلة اللي عايزها في الاختبار من الفوق، واكتب اسم الاختبار، واضغط إنشاء.</p>
+    <div class="exam-make">
+      <input type="text" id="exam-title" maxlength="120" placeholder="اسم الاختبار (مثال: امتحان منتصف الترم)">
+      <button type="button" class="primary" id="exam-make">➕ إنشاء الاختبار</button>
+    </div>
+    <div id="exam-list"></div>
   </section>
+
+  <div class="picker">
+    <select id="track" aria-label="الشعبة">
+      <option value="ar">عربي</option>
+      <option value="en">انجليزي</option>
+    </select>
+    <select id="level" aria-label="المستوى">
+      <option value="1">الأول</option>
+      <option value="2">الثاني</option>
+      <option value="3">الثالث</option>
+      <option value="4">الرابع</option>
+    </select>
+  </div>
+
+  <div id="exam-head" hidden></div>
+  <div id="status"></div>
+  <form id="quiz" autocomplete="off"></form>
+
+  <div class="actions">
+    <button id="submit" class="primary" type="button" hidden>تصحيح</button>
+    <button id="reset" class="ghost" type="button" hidden>اختبار جديد</button>
+  </div>
+
+  <div id="result" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
   <script src="quiz.js"></script>

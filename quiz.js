@@ -1,4 +1,4 @@
-// ---------- صفحة الاختبارات: الأسئلة من Supabase، والتصحيح على السيرفر ----------
+// ---------- صفحة الاختبارات: بنك الأسئلة + الاختبارات الكاملة + التصحيح على السيرفر ----------
 
 const SUPABASE_URL = 'https://jifoamltmdgpawpjgrbz.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_IiaTAO0BNUJTp_pzVidhhA_e1g82vpi';
@@ -12,12 +12,40 @@ const lang = (() => { try { return localStorage.getItem('lang') || 'ar'; } catch
 const isEn = lang === 'en';
 const txt = (ar, en) => (isEn ? en : ar);
 
+// لو الرابط فيه ?exam=ID يبقى ده اختبار كامل بيتحل
+const params = new URLSearchParams(location.search);
+const examId = params.get('exam') ? Number(params.get('exam')) : null;
+
 let room = 'ar-1';
-let questions = [];   // [{ id, question, options }]
+let questions = [];   // اللي الطالب بيحله: [{ id, question, options }]
+let bank = [];        // بنك الأستاذ: [{ id, question, options, answer }]
 let loggedIn = false;
 let isStaff = false;
+let myId = null;
+let editingId = null;
 
-// الشعبة والمستوى بيتقروا من نفس الإعدادات اللي في الشات
+// ---------- أدوات صغيرة ----------
+function el(tag, cls) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+}
+function btn(text, cls) {
+  const b = el('button', cls);
+  b.type = 'button';
+  b.textContent = text;
+  return b;
+}
+function setStatus(msg) {
+  $('status').textContent = msg;
+}
+function examUrl(id) {
+  const u = new URL('quiz.html', location.href);
+  u.search = `?exam=${id}`;
+  return u.href;
+}
+
+// ---------- الشعبة والمستوى ----------
 function readRoom() {
   let track = 'ar';
   let level = 1;
@@ -37,76 +65,46 @@ function saveRoom(track, level) {
   } catch {}
 }
 
-function setStatus(msg) {
-  $('status').textContent = msg;
+function setPickersFromRoom() {
+  const r = readRoom();
+  $('track').value = r.track;
+  $('level').value = String(r.level);
 }
 
-// هل فيه جلسة؟ ولو فيه، هل هو أدمن/مرسل؟
+// ---------- المستخدم ----------
 async function checkUser() {
   const { data } = await sb.auth.getSession();
   const user = data && data.session ? data.session.user : null;
-  if (!user) return { loggedIn: false, staff: false };
+  if (!user) return { loggedIn: false, staff: false, id: null };
   const { data: prof } = await sb.from('profiles').select('role').eq('id', user.id).maybeSingle();
-  return { loggedIn: true, staff: !!prof && (prof.role === 'admin' || prof.role === 'sender') };
+  return {
+    loggedIn: true,
+    staff: !!prof && (prof.role === 'admin' || prof.role === 'sender'),
+    id: user.id,
+  };
 }
 
-async function loadRoom() {
-  room = `${$('track').value}-${$('level').value}`;
-  saveRoom($('track').value, $('level').value);
-
-  $('quiz').innerHTML = '';
-  $('submit').hidden = true;
-  $('reset').hidden = true;
-  $('result').hidden = true;
-
-  if (!loggedIn) {
-    questions = [];
-    setStatus(txt('سجّل دخول من الشات الأول عشان تشوف الاختبارات', 'Log in from the chat first to see the quizzes'));
-  } else {
-    setStatus(txt('بحمّل الأسئلة...', 'Loading questions...'));
-    const { data, error } = await sb.rpc('get_quiz', { p_room: room });
-    if (error) {
-      questions = [];
-      setStatus(txt('ما قدرتش أحمّل الأسئلة: ', 'Could not load questions: ') + error.message);
-    } else {
-      questions = data || [];
-      if (!questions.length) {
-        setStatus(txt('مفيش أسئلة للشعبة والمستوى ده لسه', 'No questions for this room yet'));
-      } else {
-        setStatus(txt(`عدد الأسئلة: ${questions.length}`, `Questions: ${questions.length}`));
-        render();
-      }
-    }
-  }
-
-  if (isStaff) await loadStaffList();
-}
-
-function render() {
+// ---------- عرض الأسئلة للطالب ----------
+function renderQuiz() {
   const form = $('quiz');
   form.innerHTML = '';
 
   questions.forEach((item, qi) => {
-    const fs = document.createElement('fieldset');
-    fs.className = 'q';
+    const fs = el('fieldset', 'q');
     fs.id = `q${qi}`;
 
-    const legend = document.createElement('legend');
+    const legend = el('legend');
     legend.textContent = `${qi + 1}. ${item.question}`;
     fs.appendChild(legend);
 
     item.options.forEach((opt, oi) => {
-      const label = document.createElement('label');
-      label.className = 'opt';
-
-      const input = document.createElement('input');
+      const label = el('label', 'opt');
+      const input = el('input');
       input.type = 'radio';
       input.name = `q${qi}`;
       input.value = String(oi);
-
-      const span = document.createElement('span');
+      const span = el('span');
       span.textContent = String(opt);
-
       label.appendChild(input);
       label.appendChild(span);
       fs.appendChild(label);
@@ -128,7 +126,11 @@ async function submitQuiz() {
   });
 
   $('submit').disabled = true;
-  const { data, error } = await sb.rpc('submit_quiz', { p_room: room, p_answers: answers });
+  const { data, error } = await sb.rpc('submit_quiz', {
+    p_room: room,
+    p_answers: answers,
+    p_ids: examId ? questions.map(q => q.id) : null,
+  });
   $('submit').disabled = false;
   if (error) {
     setStatus(txt('ما قدرتش أصحح: ', 'Could not grade: ') + error.message);
@@ -146,24 +148,20 @@ async function submitQuiz() {
     fs.classList.remove('ok', 'bad');
     fs.querySelectorAll('.hint').forEach(h => h.remove());
 
+    const hint = el('div');
     if (!picked) {
-      const hint = document.createElement('div');
       hint.className = 'hint bad';
       hint.textContent = txt(`ما جاوبتش. الإجابة الصح: ${correctText}`, `Not answered. Correct answer: ${correctText}`);
-      fs.appendChild(hint);
     } else if (r.correct) {
       fs.classList.add('ok');
-      const hint = document.createElement('div');
       hint.className = 'hint ok';
       hint.textContent = txt('صح ✅', 'Correct ✅');
-      fs.appendChild(hint);
     } else {
       fs.classList.add('bad');
-      const hint = document.createElement('div');
       hint.className = 'hint bad';
       hint.textContent = txt(`غلط ❌. الإجابة الصح: ${correctText}`, `Wrong ❌. Correct answer: ${correctText}`);
-      fs.appendChild(hint);
     }
+    fs.appendChild(hint);
 
     fs.querySelectorAll('input').forEach(i => { i.disabled = true; });
   });
@@ -190,14 +188,82 @@ async function submitQuiz() {
 }
 
 function resetQuiz() {
-  render();
+  renderQuiz();
   $('result').hidden = true;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ---------- لوحة الأستاذ ----------
-async function loadStaffList() {
-  const box = $('staff-list');
+// ---------- تحميل اختبار كامل (رابط ?exam=ID) ----------
+async function loadExam() {
+  if (!loggedIn) {
+    setStatus(txt('سجّل دخول من الشات الأول عشان تفتح الاختبار', 'Log in from the chat first to open the exam'));
+    return;
+  }
+  setStatus(txt('بحمّل الاختبار...', 'Loading exam...'));
+  const { data, error } = await sb.rpc('get_exam', { p_id: examId });
+  if (error) {
+    setStatus(txt('ما قدرتش أحمّل الاختبار: ', 'Could not load exam: ') + error.message);
+    return;
+  }
+  if (!data) {
+    setStatus(txt('الاختبار ده مش موجود، أو مش متاح ليك', 'This exam does not exist or is not available to you'));
+    return;
+  }
+
+  room = data.room;
+  const head = $('exam-head');
+  head.textContent = '📝 ' + data.title;
+  head.hidden = false;
+
+  questions = data.questions || [];
+  if (!questions.length) {
+    setStatus(txt('الاختبار ده فاضي', 'This exam is empty'));
+    return;
+  }
+  setStatus(txt(`عدد الأسئلة: ${questions.length}`, `Questions: ${questions.length}`));
+  renderQuiz();
+}
+
+// ---------- تحميل الشعبة العادية ----------
+async function loadRoom() {
+  room = `${$('track').value}-${$('level').value}`;
+  saveRoom($('track').value, $('level').value);
+  if (editingId) stopEdit();
+
+  $('quiz').innerHTML = '';
+  $('submit').hidden = true;
+  $('reset').hidden = true;
+  $('result').hidden = true;
+
+  if (!loggedIn) {
+    questions = [];
+    setStatus(txt('سجّل دخول من الشات الأول عشان تشوف الاختبارات', 'Log in from the chat first to see the quizzes'));
+  } else {
+    setStatus(txt('بحمّل الأسئلة...', 'Loading questions...'));
+    const { data, error } = await sb.rpc('get_quiz', { p_room: room });
+    if (error) {
+      questions = [];
+      setStatus(txt('ما قدرتش أحمّل الأسئلة: ', 'Could not load questions: ') + error.message);
+    } else {
+      questions = data || [];
+      if (!questions.length) {
+        setStatus(txt('مفيش أسئلة للشعبة والمستوى ده لسه', 'No questions for this room yet'));
+      } else {
+        setStatus(txt(`عدد الأسئلة: ${questions.length}`, `Questions: ${questions.length}`));
+        renderQuiz();
+      }
+    }
+  }
+
+  if (isStaff) {
+    await loadBank();
+    await loadExams();
+  }
+}
+
+// ---------- بنك الأستاذ ----------
+async function loadBank() {
+  const box = $('bank-list');
   box.innerHTML = '';
   const { data, error } = await sb.from('quiz_questions')
     .select('id, question, options, answer')
@@ -208,57 +274,88 @@ async function loadStaffList() {
     box.textContent = error.message;
     return;
   }
-  const rows = data || [];
-  $('count-staff').textContent = String(rows.length);
-  if (!rows.length) {
-    box.textContent = 'مفيش أسئلة للشعبة دي لسه';
+  bank = data || [];
+  $('count-staff').textContent = String(bank.length);
+
+  if (!bank.length) {
+    const p = el('p', 'empty-line');
+    p.textContent = 'مفيش أسئلة للشعبة دي لسه';
+    box.appendChild(p);
     return;
   }
 
-  rows.forEach((row, i) => {
-    const div = document.createElement('div');
-    div.className = 'staff-item';
+  bank.forEach((row, i) => {
+    const div = el('div', 'bank-item');
 
-    const title = document.createElement('div');
-    title.className = 'staff-q';
-    title.textContent = `${i + 1}. ${row.question}`;
+    const top = el('div', 'bank-top');
+    const cb = el('input', 'pick');
+    cb.type = 'checkbox';
+    cb.value = String(row.id);
+    const q = el('div', 'bank-q');
+    q.textContent = `${i + 1}. ${row.question}`;
+    top.appendChild(cb);
+    top.appendChild(q);
 
-    const opts = document.createElement('div');
-    opts.className = 'staff-opts';
+    const opts = el('div', 'bank-opts');
     row.options.forEach((o, oi) => {
-      const line = document.createElement('div');
+      const line = el('div');
       line.textContent = (oi === row.answer ? '✅ ' : '• ') + o;
       opts.appendChild(line);
     });
 
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'del';
-    del.textContent = '🗑️ حذف';
+    const btns = el('div', 'row-btns');
+    const edit = btn('✏️ تعديل');
+    edit.onclick = () => startEdit(row);
+    const del = btn('🗑️ حذف', 'danger');
     del.onclick = async () => {
       if (!confirm('تمسح السؤال ده؟')) return;
       const { error: delErr } = await sb.from('quiz_questions').delete().eq('id', row.id);
       if (delErr) return alert(delErr.message);
       await loadRoom();
     };
+    btns.appendChild(edit);
+    btns.appendChild(del);
 
-    div.appendChild(title);
+    div.appendChild(top);
     div.appendChild(opts);
-    div.appendChild(del);
+    div.appendChild(btns);
     box.appendChild(div);
   });
 }
 
-async function addQuestion(e) {
+// تعديل سؤال: بنملّي الفورم بيه
+function startEdit(row) {
+  editingId = row.id;
+  $('new-q').value = row.question;
+  document.querySelectorAll('.new-opt').forEach((inp, i) => {
+    inp.value = row.options[i] || '';
+  });
+  document.querySelectorAll('input[name="new-ans"]').forEach(r => {
+    r.checked = Number(r.value) === row.answer;
+  });
+  $('form-title').textContent = '✏️ تعديل السؤال';
+  $('save-btn').textContent = '💾 حفظ التعديل';
+  $('cancel-edit').hidden = false;
+  $('add-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function stopEdit() {
+  editingId = null;
+  $('add-form').reset();
+  $('form-title').textContent = '➕ سؤال جديد';
+  $('save-btn').textContent = 'حفظ السؤال';
+  $('cancel-edit').hidden = true;
+}
+
+async function saveQuestion(e) {
   e.preventDefault();
   const question = $('new-q').value.trim();
   const picked = document.querySelector('input[name="new-ans"]:checked');
   const correctIdx = picked ? Number(picked.value) : -1;
 
-  const inputs = [...document.querySelectorAll('.new-opt')];
   // بناخد الاختيارات الفاضية، ونظبط رقم الإجابة الصح حسب الترتيب الجديد
-  const opts = inputs
-    .map((el, i) => ({ text: el.value.trim(), i }))
+  const opts = [...document.querySelectorAll('.new-opt')]
+    .map((inp, i) => ({ text: inp.value.trim(), i }))
     .filter(o => o.text);
 
   if (!question) return alert('اكتب نص السؤال');
@@ -266,25 +363,120 @@ async function addQuestion(e) {
   const answerPos = opts.findIndex(o => o.i === correctIdx);
   if (answerPos < 0) return alert('علّم على الإجابة الصح من الاختيارات المكتوبة');
 
-  const { error } = await sb.from('quiz_questions').insert({
-    room,
-    question,
-    options: opts.map(o => o.text),
-    answer: answerPos,
-  });
-  if (error) return alert(error.message);
+  const payload = { room, question, options: opts.map(o => o.text), answer: answerPos };
+  const res = editingId
+    ? await sb.from('quiz_questions').update(payload).eq('id', editingId)
+    : await sb.from('quiz_questions').insert(payload);
+  if (res.error) return alert(res.error.message);
 
-  $('add-form').reset();
+  stopEdit();
   await loadRoom();
 }
 
-// ---------- الأحداث والتشغيل ----------
-function setPickersFromRoom() {
-  const r = readRoom();
-  $('track').value = r.track;
-  $('level').value = String(r.level);
+// ---------- الاختبارات الكاملة ----------
+async function makeExam() {
+  const title = $('exam-title').value.trim();
+  const picked = [...document.querySelectorAll('#bank-list input.pick:checked')].map(c => Number(c.value));
+
+  if (!title) return alert('اكتب اسم الاختبار');
+  if (!picked.length) return alert('علّم على سؤال واحد على الأقل من الأسئلة اللي فوق');
+
+  // نحافظ على ترتيب البنك
+  const ordered = bank.filter(r => picked.includes(r.id)).map(r => r.id);
+  const { error } = await sb.from('quiz_exams').insert({ room, title, question_ids: ordered });
+  if (error) return alert(error.message);
+
+  $('exam-title').value = '';
+  document.querySelectorAll('#bank-list input.pick').forEach(c => { c.checked = false; });
+  await loadExams();
 }
 
+async function loadExams() {
+  const box = $('exam-list');
+  box.innerHTML = '';
+  const { data, error } = await sb.from('quiz_exams')
+    .select('id, title, question_ids, created_at')
+    .eq('room', room)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    box.textContent = error.message;
+    return;
+  }
+  if (!data || !data.length) {
+    const p = el('p', 'empty-line');
+    p.textContent = 'مفيش اختبارات للشعبة دي لسه';
+    box.appendChild(p);
+    return;
+  }
+
+  data.forEach(ex => {
+    const div = el('div', 'exam-item');
+    const link = examUrl(ex.id);
+
+    const title = el('div', 'bank-q');
+    title.textContent = '📝 ' + ex.title;
+    const meta = el('div', 'exam-meta');
+    meta.textContent = `عدد الأسئلة: ${ex.question_ids.length}`;
+
+    const row = el('div', 'row-btns');
+
+    const copy = btn('🔗 نسخ الرابط');
+    copy.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(link);
+        alert('اتنسخ الرابط');
+      } catch {
+        prompt('انسخ الرابط ده:', link);
+      }
+    };
+
+    const slot = el('select');
+    for (let n = 1; n <= 5; n++) {
+      const o = el('option');
+      o.value = String(n);
+      o.textContent = `شات ${n}`;
+      slot.appendChild(o);
+    }
+
+    const send = btn('📨 ابعته في الشات', 'primary');
+    send.onclick = async () => {
+      send.disabled = true;
+      const { error: sendErr } = await sb.from('messages').insert({
+        user_id: myId,
+        content: `📝 امتحان: ${ex.title}\n${link}`,
+        room,
+        chat_slot: Number(slot.value),
+        reply_to: null,
+        file_url: null,
+        file_type: null,
+      });
+      send.disabled = false;
+      if (sendErr) return alert(sendErr.message);
+      alert('اتبعت الامتحان في الشات');
+    };
+
+    const del = btn('🗑️ حذف', 'danger');
+    del.onclick = async () => {
+      if (!confirm(`تمسح الاختبار "${ex.title}"؟`)) return;
+      const { error: delErr } = await sb.from('quiz_exams').delete().eq('id', ex.id);
+      if (delErr) return alert(delErr.message);
+      await loadExams();
+    };
+
+    row.appendChild(copy);
+    row.appendChild(slot);
+    row.appendChild(send);
+    row.appendChild(del);
+
+    div.appendChild(title);
+    div.appendChild(meta);
+    div.appendChild(row);
+    box.appendChild(div);
+  });
+}
+
+// ---------- التشغيل ----------
 async function init() {
   setPickersFromRoom();
 
@@ -292,18 +484,29 @@ async function init() {
   $('level').addEventListener('change', loadRoom);
   $('submit').addEventListener('click', submitQuiz);
   $('reset').addEventListener('click', resetQuiz);
-  $('add-form').addEventListener('submit', addQuestion);
+  $('add-form').addEventListener('submit', saveQuestion);
+  $('cancel-edit').addEventListener('click', () => { stopEdit(); });
+  $('exam-make').addEventListener('click', makeExam);
 
+  let s;
   try {
-    const s = await checkUser();
-    loggedIn = s.loggedIn;
-    isStaff = s.staff;
+    s = await checkUser();
   } catch {
-    loggedIn = false;
-    isStaff = false;
+    s = { loggedIn: false, staff: false, id: null };
   }
-  $('staff-box').hidden = !isStaff;
+  loggedIn = s.loggedIn;
+  isStaff = s.staff;
+  myId = s.id;
 
+  if (examId) {
+    // وضع الاختبار: مفيش شعبة ولا لوحة أستاذ
+    document.querySelector('.picker').hidden = true;
+    $('staff-box').hidden = true;
+    await loadExam();
+    return;
+  }
+
+  $('staff-box').hidden = !isStaff;
   await loadRoom();
 }
 
