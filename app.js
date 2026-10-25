@@ -1175,6 +1175,8 @@ function flashMsg(id) {
 $('pinned-bar').onclick = () => flashMsg($('pinned-bar').dataset.id);
 
 async function loadMessages() {
+  // الشاتات بترسم الأول، عشان تفضل ظاهرة حتى لو الرسايل فشلت
+  if (window.renderChatTabs) window.renderChatTabs();
   const { data, error } = await sb.from('messages')
     .select('*, profiles(display_name, avatar_url)')
     .eq('room', currentRoom())
@@ -1192,7 +1194,6 @@ async function loadMessages() {
   renderPinned();
   await loadReactions(data.map(m => m.id));
   scrollBottom();
-  if (window.renderChatTabs) window.renderChatTabs();
 }
 
 // ---------- الرد ----------
@@ -1230,6 +1231,8 @@ async function sendMessage(fileUrl = null, fileType = null) {
   clearReply();
   sendTyping('stop');
   lastTypeSent = 0;
+  // نعرض الرسالة فوراً حتى لو الوقت الفعلي (Realtime) اتأخر أو ما وصلش
+  await loadMessages();
 }
 
 $('send-btn').onclick = () => sendMessage();
