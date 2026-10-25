@@ -536,15 +536,29 @@ async function handleAuthChange(event, session) {
   }
 }
 
+// بوابة إعداد البروفايل: اسم + صورة (ارفع أو اختار من الجاهزة)
+function openProfileGate() {
+  const en = lang === 'en';
+  $('pg-title').textContent = en ? 'Set up your profile' : 'جهّز بروفايلك';
+  $('pg-hint').textContent = en
+    ? 'Choose your display name and a picture (upload one or pick a ready one)'
+    : 'اكتب اسمك واختار صورة (ارفع صورة أو اختار من الجاهزة)';
+  $('pg-name').placeholder = en ? 'Your name' : 'اسمك';
+  $('pg-name').value = currentProfile.display_name || '';
+  $('gate-msg').textContent = '';
+  showScreen('auth-screen');
+  $('avatar-gate').classList.remove('hidden');
+}
+
 async function enterChat(userId) {
   const ok = await loadProfile(userId);
   if (!ok) return;
 
   watchKick(currentProfile.id);
 
-  if (!currentProfile.avatar_url) {
-    showScreen('auth-screen');
-    $('avatar-gate').classList.remove('hidden');
+  // أول دخول (بجوجل أو إيميل) لازم يكتب اسمه ويختار صورة الأول
+  if (!currentProfile.avatar_url || !currentProfile.profile_setup) {
+    openProfileGate();
     return;
   }
 
@@ -555,15 +569,26 @@ async function enterChat(userId) {
   joinTyping();
 }
 
-// بوابة صورة البروفايل للحسابات اللي مفيهاش صورة
+// حفظ بوابة إعداد البروفايل (الاسم + الصورة)
 $('gate-save').onclick = async () => {
+  const name = $('pg-name').value.trim();
+  if (name.length < 2) {
+    return setMsg('gate-msg', lang === 'en' ? 'Name must be at least 2 characters' : 'الاسم لازم يكون حرفين على الأقل');
+  }
   const file = $('gate-input').files[0];
-  if (!file && !window.pickedAvatar) return setMsg('gate-msg', t('avatarReq'));
+  const hasAvatar = !!currentProfile.avatar_url;
+  if (!file && !window.pickedAvatar && !hasAvatar) return setMsg('gate-msg', t('avatarReq'));
   try {
-    await saveAvatarChoice(file, currentProfile.id);
+    // الصورة بتتحفظ بس لو المستخدم اختار واحدة جديدة
+    if (file || window.pickedAvatar) await saveAvatarChoice(file, currentProfile.id);
+    const { error } = await sb.from('profiles')
+      .update({ display_name: name, profile_setup: true })
+      .eq('id', currentProfile.id);
+    if (error) throw error;
   } catch (e) {
     return setMsg('gate-msg', t('avatarFail') + e.message);
   }
+  window.pickedAvatar = null;
   await enterChat(currentProfile.id);
 };
 

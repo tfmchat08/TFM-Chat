@@ -188,7 +188,9 @@
   <!-- بوابة صورة البروفايل -->
   <div id="avatar-gate" class="modal hidden">
     <div class="modal-box">
-      <h3 data-i18n="chooseAvatar"></h3>
+      <h3 id="pg-title"></h3>
+      <p class="hint" id="pg-hint"></p>
+      <input id="pg-name" type="text" maxlength="30" autocomplete="nickname">
       <input id="gate-input" type="file" accept="image/*">
       <button id="gate-save" class="primary" data-i18n="save"></button>
       <p id="gate-msg" class="msg-text"></p>
@@ -312,7 +314,7 @@
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=22"></script>
   <script src="ai.js?v=13"></script>
   <script src="gate.js?v=3"></script>
   <script src="ai-warn.js?v=3"></script>
