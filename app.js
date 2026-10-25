@@ -592,48 +592,55 @@ async function loadMembers() {
     const banned = p.is_banned && currentProfile && currentProfile.role === 'admin' ? ' 🚫' : '';
 
     row.innerHTML = `${avatar}<div class="member-info"><b>${esc(name)}${banned}</b><span class="role-tag">${t(ROLE_KEYS[p.role] || 'roleViewer')}</span></div>`;
-    const mb = document.createElement('button');
-    mb.type = 'button';
-    mb.className = 'ghost';
-    mb.textContent = '📜';
-    mb.title = lang === 'en' ? 'Messages in this room' : 'رسايله في الشعبة دي';
-    mb.onclick = () => showUserMessages(p.id, name);
-    row.appendChild(mb);
+    // زرار ⋮ بيفتح قايمة الإجراءات لكل عضو
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'ghost';
+    more.textContent = '⋮';
+    more.title = lang === 'en' ? 'Actions' : 'إجراءات';
+    row.appendChild(more);
+
+    const actions = document.createElement('div');
+    actions.className = 'member-actions hidden';
+    actions.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;width:100%;padding:8px 0 2px;';
+
+    const addAction = (label, onclick, cls = 'ghost') => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = cls;
+      b.textContent = label;
+      b.onclick = onclick;
+      actions.appendChild(b);
+    };
+
+    more.onclick = () => actions.classList.toggle('hidden');
+
+    // الكل يشوف رسايل العضو
+    addAction('📜 رسايله في الشعبة', () => showUserMessages(p.id, name));
 
     // أدوات الأدمن بس (على الأعضاء التانيين)
     if (currentProfile && currentProfile.role === 'admin' && p.id !== currentProfile.id) {
-      const sel = document.createElement('select');
-      ['admin', 'sender', 'viewer'].forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r;
-        opt.textContent = r;
-        if (r === p.role) opt.selected = true;
-        sel.appendChild(opt);
-      });
-      sel.onchange = async () => {
-        const { error } = await sb.from('profiles').update({ role: sel.value }).eq('id', p.id);
-        if (error) alert(error.message);
-        else await loadMembers();
-      };
-      row.appendChild(sel);
+      const who = p.display_name || p.id.slice(0, 8);
 
-      const kb = document.createElement('button');
-      kb.textContent = p.is_banned ? t('unkick') : t('kick');
-      kb.className = p.is_banned ? 'ghost' : 'danger-btn';
-      kb.onclick = async () => {
+      ['admin', 'sender', 'viewer'].forEach(r => {
+        const isCurrent = p.role === r;
+        addAction(`${isCurrent ? '✔ ' : ''}${t(ROLE_KEYS[r])}`, async () => {
+          if (isCurrent) return;
+          const { error } = await sb.from('profiles').update({ role: r }).eq('id', p.id);
+          if (error) alert(error.message);
+          else await loadMembers();
+        }, isCurrent ? 'primary' : 'ghost');
+      });
+
+      addAction(p.is_banned ? t('unkick') : t('kick'), async () => {
         const { error } = await sb.from('profiles').update({ is_banned: !p.is_banned }).eq('id', p.id);
         if (error) alert(error.message);
         else await loadMembers();
-      };
-      row.appendChild(kb);
+      }, p.is_banned ? 'ghost' : 'danger-btn');
 
-      const db = document.createElement('button');
-      db.textContent = 'حذف';
-      db.className = 'danger-btn';
-      db.onclick = async () => {
+      addAction('🗑️ حذف الحساب', async () => {
         if (p.role === 'admin') return alert('مينفعش تحذف أدمن من هنا');
-        const name = p.display_name || p.id.slice(0, 8);
-        if (!confirm(`هتحذف حساب "${name}" نهائياً ورسايله وبياناته؟ ومش هيرجع.`)) return;
+        if (!confirm(`هتحذف حساب "${who}" نهائياً ورسايله وبياناته؟ ومش هيرجع.`)) return;
         try {
           const { data, error } = await sb.functions.invoke('admin-delete-user', { body: { userId: p.id } });
           if (error || (data && data.error)) {
@@ -644,11 +651,14 @@ async function loadMembers() {
         } catch {
           alert('حصلت مشكلة، جرّب تاني.');
         }
-      };
-      row.appendChild(db);
+      }, 'danger-btn');
     }
 
-    box.appendChild(row);
+    const wrap = document.createElement('div');
+    wrap.className = 'member-wrap';
+    wrap.appendChild(row);
+    wrap.appendChild(actions);
+    box.appendChild(wrap);
   };
 
   if (admins.length) {
