@@ -159,6 +159,96 @@ input:focus, select:focus, textarea:focus {
   background: rgba(196, 40, 63, 0.06);
 }
 
+/* زرار الميكروفون وهو بيسجل: دايرة حمرا نابضة بدل الإيموجي */
+#mic-btn.recording {
+  color: #fff;
+  background: linear-gradient(135deg, #e11d48, #9e0f2e);
+  animation: micPulse 1.4s ease-out infinite;
+}
+
+@keyframes micPulse {
+  0% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.55); }
+  70% { box-shadow: 0 0 0 12px rgba(225, 29, 72, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+}
+
+/* ===== مشغل الصوت المخصص (الرسايل الصوتية) ===== */
+.vp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 230px;
+  max-width: 290px;
+  padding: 8px 12px 8px 8px;
+  margin: 4px 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.vp audio {
+  display: none;
+}
+
+.vp-play {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: var(--accent, #c4283f);
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.vp-track {
+  flex: 1;
+  position: relative;
+  height: 16px;
+  cursor: pointer;
+}
+
+.vp-track::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.vp-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 6px;
+  width: 0;
+  transform: translateY(-50%);
+  border-radius: 6px;
+  background: #fff;
+  transition: width 0.2s linear;
+}
+
+.vp-time {
+  flex: 0 0 auto;
+  min-width: 74px;
+  text-align: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.92;
+}
+
 /* احترام إعداد تقليل الحركة في الجهاز */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

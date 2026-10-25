@@ -282,6 +282,62 @@ function scrollBottom() {
   el.scrollTop = el.scrollHeight;
 }
 
+// ---------- مشغل الصوت المخصص (بدل المشغل الافتراضي للمتصفح) ----------
+function voicePlayerHtml(src) {
+  return `<div class="vp" dir="ltr">
+    <audio src="${esc(src)}" preload="metadata"></audio>
+    <button type="button" class="vp-play" aria-label="play">▶</button>
+    <div class="vp-track"><div class="vp-fill"></div></div>
+    <span class="vp-time">0:00</span>
+  </div>`;
+}
+
+function voiceFmt(s) {
+  if (!isFinite(s) || s < 0) s = 0;
+  const m = Math.floor(s / 60);
+  const sec = String(Math.floor(s % 60)).padStart(2, '0');
+  return `${m}:${sec}`;
+}
+
+// الكليك على المشغل بيتعالج هنا بالكامل (capture) عشان ما يفتحش قايمة الرسالة
+document.addEventListener('click', e => {
+  const box = e.target.closest && e.target.closest('.vp');
+  if (!box) return;
+  e.stopPropagation();
+  const audio = box.querySelector('audio');
+
+  if (e.target.closest('.vp-play')) {
+    if (audio.paused) {
+      document.querySelectorAll('.vp audio').forEach(a => { if (a !== audio) a.pause(); });
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
+    return;
+  }
+
+  const track = e.target.closest('.vp-track');
+  if (track && audio.duration) {
+    const r = track.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    audio.currentTime = ratio * audio.duration;
+  }
+}, true);
+
+// تحديث الشريط والوقت والزرار (أحداث الميديا ما بتطلعش للفوق، فبنستخدم capture)
+['timeupdate', 'loadedmetadata', 'play', 'pause', 'ended'].forEach(ev => {
+  document.addEventListener(ev, e => {
+    const audio = e.target;
+    if (!(audio instanceof HTMLAudioElement)) return;
+    const box = audio.closest('.vp');
+    if (!box) return;
+    const d = audio.duration;
+    box.querySelector('.vp-fill').style.width = (d ? (audio.currentTime / d) * 100 : 0) + '%';
+    box.querySelector('.vp-time').textContent = voiceFmt(audio.currentTime) + ' / ' + voiceFmt(d);
+    box.querySelector('.vp-play').textContent = audio.paused ? '▶' : '❚❚';
+  }, true);
+});
+
 function isMediaType(tp) {
   return !!tp && (tp.startsWith('image/') || tp.startsWith('video/') || tp.startsWith('audio/'));
 }
@@ -1109,7 +1165,7 @@ function buildMessageEl(m) {
     } else if (tp.startsWith('video/')) {
       html += `<video src="${esc(m.file_url)}" controls playsinline></video>`;
     } else if (tp.startsWith('audio/')) {
-      html += `<audio src="${esc(m.file_url)}" controls preload="metadata"></audio>`;
+      html += voicePlayerHtml(m.file_url);
     } else {
       html += `<a href="${esc(m.file_url)}" target="_blank">📄 ${esc(fileName(m.file_url))}</a>`;
     }
@@ -1309,7 +1365,7 @@ $('cam-snap').onclick = () => {
 $('mic-btn').onclick = async () => {
   if (recorder && recorder.state === 'recording') {
     recorder.stop();
-    $('mic-btn').textContent = '🎙️';
+    $('mic-btn').classList.remove('recording');
     return;
   }
   try {
@@ -1334,7 +1390,7 @@ $('mic-btn').onclick = async () => {
     };
     recorder.start();
     startRecTyping();
-    $('mic-btn').textContent = '⏹️';
+    $('mic-btn').classList.add('recording');
   } catch (err) {
     alert(t('micFail') + err.message);
   }
