@@ -818,6 +818,74 @@ $('set-name').onclick = async () => {
   await loadMessages();
 };
 
+// ---------- الملف الشخصي (زرار واحد في الإعدادات) ----------
+function pfText() {
+  const en = lang === 'en';
+  return {
+    title: en ? 'Profile' : 'الملف الشخصي',
+    logout: en ? 'Log out' : 'تسجيل خروج',
+    del: en ? '🗑️ Delete account' : '🗑️ حذف الحساب',
+    setBtn: en ? '👤 Profile' : '👤 الملف الشخصي',
+    fontT: en ? 'Font size' : 'حجم الخط',
+    bgT: en ? 'Background' : 'الخلفية',
+  };
+}
+
+$('set-profile').textContent = pfText().setBtn;
+
+function closeProfile() {
+  $('profile-modal').classList.add('hidden');
+}
+
+async function openProfile() {
+  if (!currentProfile) return;
+  const x = pfText();
+  $('pf-title').textContent = x.title;
+  $('pf-logout').textContent = x.logout;
+  $('pf-delete').textContent = x.del;
+  $('pf-font-t').textContent = x.fontT;
+  $('pf-bg-t').textContent = x.bgT;
+  renderPfFont();
+  $('pf-avatar').src = currentProfile.avatar_url || 'avatars/av1.png';
+  $('pf-name').textContent = currentProfile.display_name || t('userDefault');
+  $('pf-email').textContent = '';
+  $('profile-modal').classList.remove('hidden');
+  const { data } = await sb.auth.getUser();
+  $('pf-email').textContent = data && data.user ? (data.user.email || '') : '';
+}
+
+$('set-profile').onclick = () => {
+  $('settings-modal').classList.add('hidden');
+  openProfile();
+};
+$('profile-close').onclick = closeProfile;
+// كل زرار بيستخدم نفس الوظيفة الأصلية (الإعدادات القديمة متخفية بس)
+$('pf-avatar-btn').onclick = () => { closeProfile(); $('avatar-input').click(); };
+$('pf-name-btn').onclick = () => { closeProfile(); $('set-name').click(); };
+$('pf-logout').onclick = () => { closeProfile(); $('set-logout').click(); };
+$('pf-delete').onclick = () => { closeProfile(); $('set-delete').click(); };
+
+// حجم الخط: بيستخدم نفس زرار prefs.js (بيدوّر على الأحجام)، والكارت بيعرض الحجم الحالي
+const PF_FONTS = {
+  small: ['صغير', 'Small'],
+  normal: ['عادي', 'Normal'],
+  large: ['كبير', 'Large'],
+  xlarge: ['كبير جداً', 'Extra large'],
+};
+
+function renderPfFont() {
+  let k = 'normal';
+  try { k = localStorage.getItem('tfm_font') || 'normal'; } catch {}
+  const f = PF_FONTS[k] || PF_FONTS.normal;
+  $('pf-font-val').textContent = lang === 'en' ? f[1] : f[0];
+}
+
+$('pf-font').onclick = () => {
+  $('set-font').click();
+  renderPfFont();
+};
+$('pf-bg').onclick = () => { closeProfile(); $('set-bg').click(); };
+
 $('set-history').onclick = () => {
   $('settings-modal').classList.add('hidden');
   $('history-modal').classList.remove('hidden');
