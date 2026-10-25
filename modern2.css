@@ -458,6 +458,15 @@ input:focus, select:focus, textarea:focus {
   border-color: rgba(196, 40, 63, 0.15);
 }
 
+/* صورة المستخدم في الهيدر بتفتح الملف الشخصي */
+#user-box {
+  cursor: pointer;
+}
+
+#user-box:hover .avatar {
+  box-shadow: 0 0 0 3px var(--accent);
+}
+
 /* احترام إعداد تقليل الحركة في الجهاز */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

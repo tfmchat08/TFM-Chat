@@ -851,6 +851,8 @@ $('set-profile').onclick = () => {
   openProfile();
 };
 $('profile-close').onclick = closeProfile;
+// الضغط على صورة المستخدم في الهيدر بيفتح الملف الشخصي
+$('user-box').onclick = () => openProfile();
 // كل زرار بيستخدم نفس الوظيفة الأصلية (الإعدادات القديمة متخفية بس)
 $('pf-avatar-btn').onclick = () => { closeProfile(); $('avatar-input').click(); };
 $('pf-name-btn').onclick = () => { closeProfile(); $('set-name').click(); };
