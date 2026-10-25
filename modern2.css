@@ -631,6 +631,33 @@ input:focus, select:focus, textarea:focus {
   font-weight: 700;
 }
 
+/* ===== تسليم الواجبات والدرجات ===== */
+.sub-status {
+  display: block;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+.sub-status a {
+  color: inherit;
+  font-weight: 700;
+}
+
+.sub-row .sub-inputs {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.sub-row .sub-inputs input {
+  flex: 1;
+  min-width: 80px;
+  padding: 6px 8px;
+  border-radius: 10px;
+}
+
 /* احترام إعداد تقليل الحركة في الجهاز */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

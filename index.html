@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="emoji.css?v=1">
   <link rel="stylesheet" href="modern.css?v=1">
   <link rel="stylesheet" href="chats.css?v=1">
-  <link rel="stylesheet" href="modern2.css?v=14">
+  <link rel="stylesheet" href="modern2.css?v=15">
 </head>
 <body>
 
@@ -156,6 +156,17 @@
     <div id="members-list" class="members-body"></div>
   </aside>
 
+  <!-- تسليمات الواجب والدرجات (للأدمن والمرسل) -->
+  <div id="subs-modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3 id="subs-title">📝 التسليمات</h3>
+        <button id="subs-close" class="ghost">✕</button>
+      </div>
+      <div id="subs-list" class="mat-list"></div>
+    </div>
+  </div>
+
   <!-- ملفات المادة (لكل شعبة) -->
   <div id="materials-modal" class="modal hidden">
     <div class="modal-box">
@@ -165,6 +176,7 @@
       </div>
       <div id="assign-box" class="assign-box">
         <h4 class="assign-title-h">📝 الواجبات والمواعيد</h4>
+        <button type="button" id="assign-ics" class="ghost mat-upload-btn">📅 تصدير المواعيد للتقويم</button>
         <form id="assign-form" class="assign-form">
           <input id="assign-title" placeholder="اسم الواجب" maxlength="80" required>
           <input id="assign-due" type="datetime-local">
@@ -401,6 +413,6 @@
   <script src="chats.js?v=2"></script>
   <script src="badge.js?v=4"></script>
   <script src="notify.js?v=1"></script>
-  <script src="materials.js?v=2"></script>
+  <script src="materials.js?v=3"></script>
 </body>
 </html>
