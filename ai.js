@@ -73,7 +73,7 @@ function applySpeakBtn() {
   const b = $('ai-speak');
   if (!b) return;
   const on = aiVoiceOn();
-  b.textContent = on ? '🔊' : '🔇';
+  b.textContent = (on ? '🔊 ' : '🔇 ') + (aiLangMode === 'en' ? 'Voice replies' : 'الرد الصوتي');
   b.title = aiLangMode === 'en'
     ? (on ? 'Voice replies: on' : 'Voice replies: off')
     : (on ? 'الرد الصوتي: شغال' : 'الرد الصوتي: مقفول');
@@ -826,7 +826,30 @@ $('ai-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') aiSend(false);
 });
 
-$('set-admin').addEventListener('click', () => setTimeout(loadAiBooksAdmin, 0));
+// ---------- إعدادات فهيم ----------
+function closeAiSettings() {
+  $('ai-settings-modal').classList.add('hidden');
+}
+
+$('ai-settings-btn').onclick = () => {
+  const isAdmin = !!(currentProfile && currentProfile.role === 'admin');
+  $('ai-books-open').classList.toggle('hidden', !isAdmin);
+  $('ai-settings-modal').classList.remove('hidden');
+};
+$('ai-settings-close').onclick = closeAiSettings;
+
+// زرار إضافة الكتب (الأدمن بس): يفتح/يقفل قسم رفع الكتب
+$('ai-books-open').onclick = () => {
+  const box = $('ai-books-admin');
+  box.classList.toggle('hidden');
+  if (!box.classList.contains('hidden')) loadAiBooksAdmin();
+};
+
+// الزراير اللي جوه الإعدادات بتقفل النافذة بعد ما تتضغط
+['ai-speak', 'ai-lang', 'ai-cards', 'ai-regen', 'ai-clear'].forEach(id => {
+  $(id).addEventListener('click', closeAiSettings);
+});
+applySpeakBtn();
 
 sb.auth.onAuthStateChange((event, session) => {
   if (!session) closeAiScreen();

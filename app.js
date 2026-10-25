@@ -242,7 +242,6 @@ function showScreen(id) {
   ['auth-screen', 'recovery-screen', 'chat-screen'].forEach(s => $(s).classList.add('hidden'));
   $(id).classList.remove('hidden');
   $('members-panel').classList.add('hidden');
-  $('admin-modal').classList.add('hidden');
 }
 
 function setMsg(id, text, isErr = true) {
@@ -601,6 +600,54 @@ async function loadMembers() {
     mb.onclick = () => showUserMessages(p.id, name);
     row.appendChild(mb);
 
+    // أدوات الأدمن بس (على الأعضاء التانيين)
+    if (currentProfile && currentProfile.role === 'admin' && p.id !== currentProfile.id) {
+      const sel = document.createElement('select');
+      ['admin', 'sender', 'viewer'].forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r;
+        opt.textContent = r;
+        if (r === p.role) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.onchange = async () => {
+        const { error } = await sb.from('profiles').update({ role: sel.value }).eq('id', p.id);
+        if (error) alert(error.message);
+        else await loadMembers();
+      };
+      row.appendChild(sel);
+
+      const kb = document.createElement('button');
+      kb.textContent = p.is_banned ? t('unkick') : t('kick');
+      kb.className = p.is_banned ? 'ghost' : 'danger-btn';
+      kb.onclick = async () => {
+        const { error } = await sb.from('profiles').update({ is_banned: !p.is_banned }).eq('id', p.id);
+        if (error) alert(error.message);
+        else await loadMembers();
+      };
+      row.appendChild(kb);
+
+      const db = document.createElement('button');
+      db.textContent = 'حذف';
+      db.className = 'danger-btn';
+      db.onclick = async () => {
+        if (p.role === 'admin') return alert('مينفعش تحذف أدمن من هنا');
+        const name = p.display_name || p.id.slice(0, 8);
+        if (!confirm(`هتحذف حساب "${name}" نهائياً ورسايله وبياناته؟ ومش هيرجع.`)) return;
+        try {
+          const { data, error } = await sb.functions.invoke('admin-delete-user', { body: { userId: p.id } });
+          if (error || (data && data.error)) {
+            alert('الحذف ما اتعملش: ' + ((data && data.error) || (error && error.message) || ''));
+            return;
+          }
+          await loadMembers();
+        } catch {
+          alert('حصلت مشكلة، جرّب تاني.');
+        }
+      };
+      row.appendChild(db);
+    }
+
     box.appendChild(row);
   };
 
@@ -614,7 +661,6 @@ async function loadMembers() {
 
 // ---------- الإعدادات ----------
 $('settings-btn').onclick = () => {
-  $('set-admin').classList.toggle('hidden', !(currentProfile && currentProfile.role === 'admin'));
   $('settings-modal').classList.remove('hidden');
 };
 $('settings-close').onclick = () => $('settings-modal').classList.add('hidden');
@@ -671,13 +717,6 @@ $('set-history').onclick = () => {
   $('history-modal').classList.remove('hidden');
   renderHistory();
 };
-
-$('set-admin').onclick = async () => {
-  $('settings-modal').classList.add('hidden');
-  $('admin-modal').classList.remove('hidden');
-  await loadUsers();
-};
-$('admin-close').onclick = () => $('admin-modal').classList.add('hidden');
 
 $('set-search').onclick = () => {
   $('settings-modal').classList.add('hidden');

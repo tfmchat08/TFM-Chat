@@ -143,15 +143,6 @@
     <div id="members-list" class="members-body"></div>
   </aside>
 
-  <!-- لوحة الأدمن: كلمات السر والكتب والأدوار (من الجنب) -->
-  <aside id="admin-modal" class="members-panel admin-panel hidden">
-    <div class="members-head">
-      <h3 data-i18n="roles"></h3>
-      <button id="admin-close" class="ghost">✕</button>
-    </div>
-    <div id="ai-books-admin" class="ai-books-admin"></div>
-    <div id="users-list" class="members-body"></div>
-  </aside>
 
   <!-- قايمة الإعدادات -->
   <div id="settings-modal" class="modal hidden">
@@ -165,7 +156,6 @@
         <button id="set-name" class="set-item" data-i18n="changeName"></button>
         <button id="set-bg" class="set-item" data-i18n="changeBg"></button>
         <button id="set-history" class="set-item" data-i18n="history"></button>
-        <button id="set-admin" class="set-item hidden" data-i18n="admin"></button>
         <button id="set-search" class="set-item" data-i18n="search"></button>
         <button id="set-notify" class="set-item" data-i18n="notifOn"></button>
         <button id="set-theme" class="set-item"></button>
@@ -273,11 +263,7 @@
         <small id="ai-room-label"></small>
       </div>
       <div class="ai-tools">
-        <button id="ai-speak" class="ghost small" title="الرد الصوتي"><span class="ico ico-speaker"></span></button>
-        <button id="ai-lang" class="ghost small"></button>
-        <button id="ai-cards" class="ghost small" title="الكروت"><span class="ico ico-cards"></span></button>
-        <button id="ai-regen" class="ghost small" title="أعد الرد"><span class="ico ico-refresh"></span></button>
-        <button id="ai-clear" class="ghost small" title="امسح الشات"><span class="ico ico-trash"></span></button>
+        <button id="ai-settings-btn" class="ghost small" title="الإعدادات"><span class="ico ico-gear"></span></button>
       </div>
     </div>
 
@@ -296,6 +282,25 @@
     </div>
   </div>
 
+  <!-- إعدادات فهيم -->
+  <div id="ai-settings-modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>إعدادات فهيم</h3>
+        <button id="ai-settings-close" class="ghost">✕</button>
+      </div>
+      <div class="set-list">
+        <button id="ai-books-open" class="set-item hidden">📚 إضافة كتب</button>
+        <button id="ai-speak" class="set-item"></button>
+        <button id="ai-lang" class="set-item"></button>
+        <button id="ai-cards" class="set-item"><span class="ico ico-cards"></span> الكروت</button>
+        <button id="ai-regen" class="set-item"><span class="ico ico-refresh"></span> أعد الرد</button>
+        <button id="ai-clear" class="set-item danger-btn"><span class="ico ico-trash"></span> امسح الشات</button>
+      </div>
+      <div id="ai-books-admin" class="ai-books-admin hidden"></div>
+    </div>
+  </div>
+
   <input id="avatar-input" type="file" accept="image/*" hidden>
   <input id="bg-input" type="file" accept="image/*" hidden>
 
@@ -305,9 +310,9 @@
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
-  <script src="app.js?v=15"></script>
-  <script src="ai.js?v=12"></script>
-  <script src="gate.js?v=2"></script>
+  <script src="app.js?v=16"></script>
+  <script src="ai.js?v=13"></script>
+  <script src="gate.js?v=3"></script>
   <script src="ai-warn.js?v=3"></script>
   <script src="prefs.js?v=2"></script>
   <script src="account.js?v=1"></script>

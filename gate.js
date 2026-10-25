@@ -62,8 +62,6 @@ $('gate-join').onclick = async () => {
     return;
   }
   if (data === true) {
-    // نمسح أي توكن من اللينك قبل الريفريش عشان شاشة الباسورد الجديد ما تظهرش تاني
-    history.replaceState(null, '', location.pathname);
     location.reload();
   } else {
     $('gate-err').textContent = lang === 'en' ? 'Wrong code' : 'الكود غلط';
@@ -76,32 +74,30 @@ $('gate-code').addEventListener('keydown', e => {
 
 $('gate-logout').onclick = async () => {
   await sb.auth.signOut({ scope: 'local' });
-  history.replaceState(null, '', location.pathname);
   location.reload();
 };
 
 // ---------- الأدمن: تحديد كلمات سر الشعب ----------
 const codesAdmin = document.createElement('div');
 codesAdmin.className = 'ai-books-admin';
-$('ai-books-admin').before(codesAdmin);
+// داخل قايمة الأعضاء، فوق القايمة نفسها (عشان متتمسحش لما القايمة تتحدّث)
+$('members-list').before(codesAdmin);
+codesAdmin.classList.add('hidden');
 
 function renderCodesAdmin() {
   codesAdmin.innerHTML = '';
 
+  // الشعبة الحالية بس (الأدمن مش بيغيّر كلمة سر شعبة تانية)
+  const room = currentRoom();
+
   const title = document.createElement('h3');
-  title.textContent = lang === 'en' ? '🔑 Room access codes' : '🔑 كلمات سر الشعب';
+  title.textContent = lang === 'en'
+    ? `🔑 Room code: ${aiRoomTitle(room)}`
+    : `🔑 كلمة سر الشعبة: ${aiRoomTitle(room)}`;
   codesAdmin.appendChild(title);
 
   const form = document.createElement('div');
   form.className = 'ai-book-form';
-
-  const sel = document.createElement('select');
-  ROOMS.forEach(r => {
-    const o = document.createElement('option');
-    o.value = r;
-    o.textContent = aiRoomTitle(r);
-    sel.appendChild(o);
-  });
 
   const inp = document.createElement('input');
   inp.type = 'text';
@@ -115,19 +111,23 @@ function renderCodesAdmin() {
   btn.onclick = async () => {
     const code = inp.value.trim();
     if (code.length < 4) return alert(lang === 'en' ? 'Min 4 characters' : 'لازم 4 حروف على الأقل');
-    const { error } = await sb.rpc('set_room_code', { p_room: sel.value, p_code: code });
+    const { error } = await sb.rpc('set_room_code', { p_room: room, p_code: code });
     if (error) return alert(error.message);
     inp.value = '';
     alert(lang === 'en' ? 'Saved. Users must re-enter the new code.' : 'اتحفظ. الطلاب لازم يدخلوا الكود الجديد.');
   };
 
-  form.appendChild(sel);
   form.appendChild(inp);
   form.appendChild(btn);
   codesAdmin.appendChild(form);
 }
 
-$('set-admin').addEventListener('click', () => setTimeout(renderCodesAdmin, 0));
+// لما يفتح الأعضاء: الأدمن بس يشوف لوحة كلمات السر
+$('members-btn').addEventListener('click', () => {
+  const isAdmin = !!(currentProfile && currentProfile.role === 'admin');
+  codesAdmin.classList.toggle('hidden', !isAdmin);
+  if (isAdmin) renderCodesAdmin();
+});
 
 sb.auth.onAuthStateChange((event, session) => {
   if (session) setTimeout(checkRoomGate, 300);
