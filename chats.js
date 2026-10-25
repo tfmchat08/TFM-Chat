@@ -19,15 +19,15 @@ function chatBar() {
     bar = document.createElement('div');
     bar.id = 'chat-tabs';
     bar.className = 'chat-tabs';
-    $('search-bar').before(bar);
+    const anchor = document.getElementById('search-bar');
+    if (anchor) anchor.before(bar);
+    else document.getElementById('chat-screen').prepend(bar);
   }
   return bar;
 }
 
 // بيرسم الخمس شاتات فوق (من اليمين)
-window.renderChatTabs = async function () {
-  await loadChatsInfo();
-  const bar = chatBar();
+function drawChatTabs(bar) {
   bar.innerHTML = '';
   for (let s = 1; s <= 5; s++) {
     const c = chatInfo(s);
@@ -42,7 +42,40 @@ window.renderChatTabs = async function () {
     b.onclick = () => switchChat(s);
     bar.appendChild(b);
   }
+}
+
+window.renderChatTabs = async function () {
+  const bar = chatBar();
+  // نرسمهم فوراً بالأسماء الافتراضية، وبعدين نحدّثهم بالأسماء من السيرفر
+  drawChatTabs(bar);
+  try {
+    await loadChatsInfo();
+  } catch {
+    chatsInfo = [];
+  }
+  drawChatTabs(bar);
 };
+
+// زرار "التواصل والشكاوي" في الإعدادات: بيفتح نفس النافذة اللي من برا بالظبط
+(function hookSettingsContact() {
+  const b = document.getElementById('set-contact');
+  if (!b) return;
+  b.addEventListener('click', () => {
+    document.getElementById('settings-modal').classList.add('hidden');
+    document.getElementById('contact-modal').classList.remove('hidden');
+  });
+})();
+
+// الخمس شاتات تظهر من أول ما شاشة الشات تتفتح، من غير ما تستنى رسالة
+(function hookShowScreen() {
+  const original = window.showScreen;
+  if (typeof original !== 'function') return;
+  window.showScreen = function (id) {
+    const r = original.apply(this, arguments);
+    if (id === 'chat-screen' && window.renderChatTabs) window.renderChatTabs();
+    return r;
+  };
+})();
 
 function switchChat(slot) {
   if (slot === currentChatSlot) return;
