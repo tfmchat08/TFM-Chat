@@ -1838,6 +1838,44 @@ function renderHistory() {
   });
 }
 
+// ---------- احتياطي: لو الاتصال الحي ما اتفتحش، بنجيب الرسايل الجديدة كل 10 ثواني ----------
+let fallbackTimer = null;
+
+async function pollNewMessages() {
+  try {
+    const { data, error } = await sb.from('messages')
+      .select('*, profiles(display_name, avatar_url)')
+      .eq('room', currentRoom())
+      .eq('chat_slot', currentChatSlot)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (error || !data) return;
+    let added = false;
+    data.reverse().forEach(m => {
+      if (msgById.has(m.id)) return; // موجودة أصلاً، ما نكررهاش
+      renderMessage(m);
+      added = true;
+    });
+    if (added) {
+      renderPinned();
+      scrollBottom();
+    }
+  } catch {
+    // لو فشل، هنحاول تاني في الدورة الجاية
+  }
+}
+
+function startFallback() {
+  if (fallbackTimer) return;
+  fallbackTimer = setInterval(pollNewMessages, 10000);
+}
+
+function stopFallback() {
+  if (!fallbackTimer) return;
+  clearInterval(fallbackTimer);
+  fallbackTimer = null;
+}
+
 // ---------- الوقت الفعلي ----------
 function subscribeToMessages() {
   if (subscribed) return;
@@ -1882,7 +1920,11 @@ function subscribeToMessages() {
       if (!msgById.has(Number(payload.old.message_id))) return;
       applyReact('del', payload.old.message_id, payload.old.emoji, payload.old.user_id);
     })
-    .subscribe();
+    .subscribe(status => {
+      // لو الاتصال الحي اتفتح تمام نوقف الاحتياطي، ولو لأ نشغّله
+      if (status === 'SUBSCRIBED') stopFallback();
+      else startFallback();
+    });
 }
 
 // ---------- لوحة الأدمن ----------
