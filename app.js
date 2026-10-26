@@ -1843,15 +1843,20 @@ let fallbackTimer = null;
 
 async function pollNewMessages() {
   try {
-    const { data, error } = await sb.from('messages')
+    // أحدث رسالة عندنا، ونجيب بس اللي بعدها (أخف بكتير من إننا نجيب الشات كله كل مرة)
+    let newest = null;
+    msgById.forEach(m => { if (!newest || m.created_at > newest) newest = m.created_at; });
+    let q = sb.from('messages')
       .select('*, profiles(display_name, avatar_url)')
       .eq('room', currentRoom())
-      .eq('chat_slot', currentChatSlot)
-      .order('created_at', { ascending: false })
-      .limit(20);
+      .eq('chat_slot', currentChatSlot);
+    q = newest
+      ? q.gt('created_at', newest).order('created_at', { ascending: true }).limit(50)
+      : q.order('created_at', { ascending: false }).limit(20);
+    const { data, error } = await q;
     if (error || !data) return;
     let added = false;
-    data.reverse().forEach(m => {
+    (newest ? data : data.reverse()).forEach(m => {
       if (msgById.has(m.id)) return; // موجودة أصلاً، ما نكررهاش
       renderMessage(m);
       added = true;
@@ -1865,14 +1870,24 @@ async function pollNewMessages() {
   }
 }
 
+function scheduleFallback() {
+  // كل دورة بوقت عشوائي بين 8 و12 ثانية، عشان الطلبات ما تتجمعش في نفس الثانية
+  const wait = 8000 + Math.random() * 4000;
+  fallbackTimer = setTimeout(async () => {
+    // لو التاب مخفية (الموبايل مثلاً) ما نسألش السيرفر
+    if (!document.hidden) await pollNewMessages();
+    if (fallbackTimer) scheduleFallback();
+  }, wait);
+}
+
 function startFallback() {
   if (fallbackTimer) return;
-  fallbackTimer = setInterval(pollNewMessages, 10000);
+  scheduleFallback();
 }
 
 function stopFallback() {
   if (!fallbackTimer) return;
-  clearInterval(fallbackTimer);
+  clearTimeout(fallbackTimer);
   fallbackTimer = null;
 }
 
