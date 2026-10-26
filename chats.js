@@ -77,6 +77,11 @@ window.renderChatTabs = async function () {
   };
 })();
 
+// أول ما الصفحة تتحمّل نرسم الشاتات الخمسة فوراً، من غير ما نستنى رسالة
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.renderChatTabs) window.renderChatTabs();
+});
+
 function switchChat(slot) {
   if (slot === currentChatSlot) return;
   currentChatSlot = slot;

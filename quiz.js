@@ -7,10 +7,9 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = id => document.getElementById(id);
 const TRACKS = ['ar', 'en'];
 const LEVELS = [1, 2, 3, 4];
-const TRACK_NAME = { ar: 'عربي', en: 'انجليزي' };
 
-const lang = (() => { try { return localStorage.getItem('lang') || 'ar'; } catch { return 'ar'; } })();
-const isEn = lang === 'en';
+let isEn = false;
+try { isEn = localStorage.getItem('lang') === 'en'; } catch {}
 const txt = (ar, en) => (isEn ? en : ar);
 
 // لو الرابط فيه ?exam=ID يبقى ده امتحان بيتحل
@@ -18,15 +17,16 @@ const params = new URLSearchParams(location.search);
 const examId = params.get('exam') ? Number(params.get('exam')) : null;
 
 let room = 'ar-1';
-let questions = [];      // اللي الطالب بيحله: [{ id, question, options }]
-let bank = [];           // أسئلة الشعبة للأستاذ: [{ id, question, options, answer }]
-let createBank = [];     // أسئلة الشعبة اللي في شاشة إنشاء الامتحان
+let questions = [];        // اللي الطالب بيحله: [{ id, question, options }]
+let createBank = [];       // أسئلة الشعبة اللي في شاشة إنشاء الامتحان
+let createRoom = 'ar-1';   // الشعبة اللي الامتحان بيتعمل فيها
 let loggedIn = false;
 let isStaff = false;
 let isAdmin = false;
 let myId = null;
 let editingId = null;        // سؤال بيتعدّل
 let editingExamId = null;    // امتحان بيتعدّل
+let editingExamStatus = null;
 
 // ---------- أدوات صغيرة ----------
 function el(tag, cls) {
@@ -50,10 +50,52 @@ function examUrl(id) {
 }
 function roomLabel(r) {
   const [t, l] = r.split('-');
-  return `${TRACK_NAME[t] || t} · الصف ${l}`;
+  const names = isEn ? { ar: 'Arabic', en: 'English' } : { ar: 'عربي', en: 'انجليزي' };
+  return `${names[t] || t} · ${txt('الصف', 'Level')} ${l}`;
 }
 function currentPickRoom() {
   return `${$('track').value}-${$('level').value}`;
+}
+// رقم الشات اللي المدرس فاتح عليه دلوقتي (نفس الشات اللي في الصفحة الرئيسية)
+function currentChatSlot() {
+  let n = 1;
+  try { n = Number(localStorage.getItem('chatSlot')); } catch {}
+  return n >= 1 && n <= 5 ? n : 1;
+}
+
+// ---------- اللغة والوضع (لون الخلفية) ----------
+function applyStaticText() {
+  document.documentElement.lang = isEn ? 'en' : 'ar';
+  document.documentElement.dir = isEn ? 'ltr' : 'rtl';
+  document.querySelectorAll('[data-ar]').forEach(n => {
+    n.textContent = isEn ? n.dataset.en : n.dataset.ar;
+  });
+  document.querySelectorAll('[data-ph-ar]').forEach(n => {
+    n.placeholder = isEn ? n.dataset.phEn : n.dataset.phAr;
+  });
+  $('lang-toggle').textContent = isEn ? 'عربي' : 'English';
+}
+
+function toggleLang() {
+  try { localStorage.setItem('lang', isEn ? 'ar' : 'en'); } catch {}
+  location.reload();
+}
+
+function isDark() {
+  try { return localStorage.getItem('quizTheme') === 'dark'; } catch { return false; }
+}
+
+function applyTheme() {
+  const dark = isDark();
+  document.documentElement.classList.toggle('dark', dark);
+  const b = $('theme-toggle');
+  b.textContent = dark ? '☀️' : '🌙';
+  b.title = dark ? txt('الوضع الفاتح', 'Light mode') : txt('الوضع الداكن', 'Dark mode');
+}
+
+function toggleTheme() {
+  try { localStorage.setItem('quizTheme', isDark() ? 'light' : 'dark'); } catch {}
+  applyTheme();
 }
 
 // ---------- الشعبة والمستوى ----------
@@ -261,7 +303,7 @@ async function loadRoom() {
     } else {
       questions = data || [];
       if (!questions.length) {
-        setStatus(txt('مفيش أسئلة للشعبة والمستوى ده لسه', 'No questions for this room yet'));
+        setStatus(txt('مفيش أسئلة للشعبة والمستوى ده لسه', 'No questions for this class yet'));
       } else {
         setStatus(txt(`عدد الأسئلة: ${questions.length}`, `Questions: ${questions.length}`));
         renderQuiz();
@@ -285,12 +327,12 @@ async function loadBank() {
     box.textContent = error.message;
     return;
   }
-  bank = data || [];
+  const bank = data || [];
   $('count-staff').textContent = String(bank.length);
 
   if (!bank.length) {
     const p = el('p', 'empty-line');
-    p.textContent = 'مفيش أسئلة للشعبة دي لسه';
+    p.textContent = txt('مفيش أسئلة للشعبة دي لسه', 'No questions in this class yet');
     box.appendChild(p);
     return;
   }
@@ -309,13 +351,13 @@ async function loadBank() {
     });
 
     const btns = el('div', 'row-btns');
-    const edit = btn('✏️ تعديل');
+    const edit = btn(txt('✏️ تعديل', '✏️ Edit'));
     edit.onclick = () => startEdit(row);
-    const copy = btn('📋 نسخ');
+    const copy = btn(txt('📋 نسخ', '📋 Copy'));
     copy.onclick = () => duplicateQuestion(row);
-    const del = btn('🗑️ حذف', 'danger');
+    const del = btn(txt('🗑️ حذف', '🗑️ Delete'), 'danger');
     del.onclick = async () => {
-      if (!confirm('تمسح السؤال ده؟')) return;
+      if (!confirm(txt('تمسح السؤال ده؟', 'Delete this question?'))) return;
       if (!(await deleteQuestion(row.id))) return;
       await loadRoom();
     };
@@ -338,13 +380,25 @@ async function deleteQuestion(id) {
     return false;
   }
   if (!data || !data.length) {
-    alert('ما اتمسحش السؤال. مفيش صلاحية على الشعبة دي من حسابك.');
+    alert(txt('ما اتمسحش السؤال. مفيش صلاحية على الشعبة دي من حسابك.', 'Not deleted. You have no permission for this class.'));
     return false;
   }
   return true;
 }
 
 // ---------- فورم السؤال ----------
+function setFormMode(mode) {
+  // mode: 'new' | 'edit' | 'copy'
+  const titles = {
+    new: txt('➕ سؤال جديد', '➕ New question'),
+    edit: txt('✏️ تعديل السؤال', '✏️ Edit question'),
+    copy: txt('📋 سؤال منسوخ (جديد)', '📋 Copied question (new)'),
+  };
+  $('form-title').textContent = titles[mode];
+  $('save-btn').textContent = mode === 'edit' ? txt('💾 حفظ التعديل', '💾 Save changes') : txt('حفظ السؤال', 'Save question');
+  $('cancel-edit').hidden = mode === 'new';
+}
+
 function fillForm(row) {
   $('new-q').value = row.question;
   document.querySelectorAll('.new-opt').forEach((inp, i) => {
@@ -359,26 +413,20 @@ function fillForm(row) {
 function startEdit(row) {
   editingId = row.id;
   fillForm(row);
-  $('form-title').textContent = '✏️ تعديل السؤال';
-  $('save-btn').textContent = '💾 حفظ التعديل';
-  $('cancel-edit').hidden = false;
+  setFormMode('edit');
 }
 
 // نسخ سؤال: بيتملّي الفورم، وبيتحفظ كسؤال جديد
 function duplicateQuestion(row) {
   editingId = null;
   fillForm(row);
-  $('form-title').textContent = '📋 سؤال منسوخ (جديد)';
-  $('save-btn').textContent = 'حفظ السؤال';
-  $('cancel-edit').hidden = false;
+  setFormMode('copy');
 }
 
 function stopEdit() {
   editingId = null;
   $('add-form').reset();
-  $('form-title').textContent = '➕ سؤال جديد';
-  $('save-btn').textContent = 'حفظ السؤال';
-  $('cancel-edit').hidden = true;
+  setFormMode('new');
 }
 
 async function saveQuestion(e) {
@@ -392,10 +440,10 @@ async function saveQuestion(e) {
     .map((inp, i) => ({ text: inp.value.trim(), i }))
     .filter(o => o.text);
 
-  if (!question) return alert('اكتب نص السؤال');
-  if (opts.length < 2) return alert('لازم اختيارين على الأقل');
+  if (!question) return alert(txt('اكتب نص السؤال', 'Write the question text'));
+  if (opts.length < 2) return alert(txt('لازم اختيارين على الأقل', 'At least two options are required'));
   const answerPos = opts.findIndex(o => o.i === correctIdx);
-  if (answerPos < 0) return alert('علّم على الإجابة الصح من الاختيارات المكتوبة');
+  if (answerPos < 0) return alert(txt('علّم على الإجابة الصح من الاختيارات المكتوبة', 'Mark the correct answer among the written options'));
 
   const payload = { room, question, options: opts.map(o => o.text), answer: answerPos };
   const res = editingId
@@ -408,16 +456,24 @@ async function saveQuestion(e) {
 }
 
 // ---------- إنشاء / تعديل امتحان ----------
+function updateCreateRoomLabel() {
+  $('create-room').textContent = txt(
+    `الشعبة: ${roomLabel(createRoom)} · النشر هيتم في الشات ${currentChatSlot()}`,
+    `Class: ${roomLabel(createRoom)} · Will be posted in chat ${currentChatSlot()}`);
+}
+
 function openCreate(exam) {
   editingExamId = exam ? exam.id : null;
-  const r = exam ? exam.room : currentPickRoom();
-  const [t, l] = r.split('-');
-  $('c-track').value = t;
-  $('c-level').value = l;
+  editingExamStatus = exam ? exam.status : null;
+  createRoom = exam ? exam.room : currentPickRoom();
+
+  $('create-title').textContent = txt(exam ? '✏️ تعديل الامتحان' : '➕ إنشاء امتحان',
+    exam ? '✏️ Edit exam' : '➕ New exam');
   $('exam-title').value = exam ? exam.title : '';
-  $('create-title').textContent = exam ? '✏️ تعديل الامتحان' : '➕ إنشاء امتحان';
-  $('save-draft').textContent = '💾 حفظ';
-  $('pick-all').textContent = '☑️ تحديد الكل';
+  $('exam-limit').value = '';
+  // الحفظ كمسودة بيتخفي لو الامتحان منشور أصلاً (عشان ما يتحولش لمسودة ويتقفل عن الطلاب)
+  $('save-draft').hidden = editingExamStatus === 'published';
+  updateCreateRoomLabel();
   $('create-box').hidden = false;
   loadCreateList(exam ? exam.question_ids : []);
   $('create-box').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -425,18 +481,22 @@ function openCreate(exam) {
 
 function closeCreate() {
   editingExamId = null;
+  editingExamStatus = null;
   $('create-box').hidden = true;
   $('exam-title').value = '';
+  $('exam-limit').value = '';
+  $('create-list').innerHTML = '';
+  $('picked-list').innerHTML = '';
+  $('picked-count').textContent = '0';
 }
 
 // أسئلة الشعبة اللي بتتختار منها الامتحان
 async function loadCreateList(preselect = []) {
   const box = $('create-list');
   box.innerHTML = '';
-  const croom = `${$('c-track').value}-${$('c-level').value}`;
   const { data, error } = await sb.from('quiz_questions')
     .select('id, question, options, answer')
-    .eq('room', croom)
+    .eq('room', createRoom)
     .order('id', { ascending: true });
 
   if (error) {
@@ -447,8 +507,10 @@ async function loadCreateList(preselect = []) {
 
   if (!createBank.length) {
     const p = el('p', 'empty-line');
-    p.textContent = 'مفيش أسئلة للشعبة دي. ضيف أسئلة من "أسئلة الشعبة" الأول.';
+    p.textContent = txt('مفيش أسئلة للشعبة دي. ضيف أسئلة من "أسئلة الشعبة" الأول.',
+      'No questions in this class. Add questions in "Class questions" first.');
     box.appendChild(p);
+    renderPicked();
     return;
   }
 
@@ -459,6 +521,7 @@ async function loadCreateList(preselect = []) {
     cb.type = 'checkbox';
     cb.value = String(row.id);
     cb.checked = preselect.includes(row.id);
+    cb.addEventListener('change', renderPicked);
     const q = el('div', 'bank-q');
     q.textContent = `${i + 1}. ${row.question}`;
     top.appendChild(cb);
@@ -475,6 +538,54 @@ async function loadCreateList(preselect = []) {
     div.appendChild(opts);
     box.appendChild(div);
   });
+
+  renderPicked();
+}
+
+function checkedIds() {
+  return [...document.querySelectorAll('#create-list input.pick:checked')].map(c => Number(c.value));
+}
+
+// قايمة الأسئلة اللي في الامتحان دلوقتي، وكل سؤال فيها زرار ✕ يشيله
+function renderPicked() {
+  const ids = checkedIds();
+  const picked = createBank.filter(r => ids.includes(r.id));
+  $('picked-count').textContent = String(picked.length);
+
+  const box = $('picked-list');
+  box.innerHTML = '';
+  if (!picked.length) {
+    const p = el('p', 'empty-line');
+    p.textContent = txt('ما اخترتش أي سؤال لسه', 'No questions picked yet');
+    box.appendChild(p);
+    return;
+  }
+
+  picked.forEach((row, i) => {
+    const line = el('div', 'picked-row');
+    const t = el('span', 'picked-text');
+    t.textContent = `${i + 1}. ${row.question}`;
+    const x = btn('✕', 'ghost icon-x');
+    x.title = txt('شيل السؤال من الامتحان', 'Remove from exam');
+    x.onclick = () => {
+      const cb = document.querySelector(`#create-list input.pick[value="${row.id}"]`);
+      if (cb) cb.checked = false;
+      renderPicked();
+    };
+    line.appendChild(t);
+    line.appendChild(x);
+    box.appendChild(line);
+  });
+}
+
+// الحد: اكتب رقم، وأول الأسئلة لحد الرقم ده بتتختار
+function applyLimit() {
+  const n = Number($('exam-limit').value);
+  if (!n || n < 1) return;
+  document.querySelectorAll('#create-list input.pick').forEach((cb, i) => {
+    cb.checked = i < n;
+  });
+  renderPicked();
 }
 
 function togglePickAll() {
@@ -482,55 +593,71 @@ function togglePickAll() {
   if (!boxes.length) return;
   const allOn = boxes.every(b => b.checked);
   boxes.forEach(b => { b.checked = !allOn; });
-  $('pick-all').textContent = allOn ? '☑️ تحديد الكل' : '⬜ إلغاء التحديد';
+  $('pick-all').textContent = allOn
+    ? txt('☑️ تحديد الكل', '☑️ Select all')
+    : txt('⬜ إلغاء التحديد', '⬜ Clear selection');
+  renderPicked();
 }
 
-// حفظ: مسودة (بتظهر في السجل بس)، أو حفظ ونشر (بتنزل في الشات اللي اختاره)
+// بينزل الامتحان في الشات اللي المدرس فاتح عليه
+async function postExamToChat(exam) {
+  const slot = currentChatSlot();
+  const { error } = await sb.from('messages').insert({
+    user_id: myId,
+    content: `📝 امتحان: ${exam.title}\n${examUrl(exam.id)}`,
+    room: exam.room,
+    chat_slot: slot,
+    reply_to: null,
+    file_url: null,
+    file_type: null,
+  });
+  if (error) {
+    alert(txt('الامتحان اتحفظ، بس ما اتنزلش في الشات: ', 'Saved, but not posted to chat: ') + error.message);
+    return false;
+  }
+  return true;
+}
+
+// حفظ: مسودة (بتظهر في السجل بس)، أو حفظ ونشر (بتنزل في الشات اللي المدرس فيه)
 async function saveExam(publish) {
   const title = $('exam-title').value.trim();
-  const ids = [...document.querySelectorAll('#create-list input.pick:checked')].map(c => Number(c.value));
-  const croom = `${$('c-track').value}-${$('c-level').value}`;
+  const ids = checkedIds();
 
-  if (!title) return alert('اكتب اسم الامتحان أو اسم الماده');
-  if (!ids.length) return alert('اختار سؤال واحد على الأقل');
+  if (!title) return alert(txt('اكتب اسم الامتحان أو اسم المادة', 'Write the exam or subject name'));
+  if (!ids.length) return alert(txt('اختار سؤال واحد على الأقل', 'Pick at least one question'));
 
   // نحافظ على ترتيب البنك
   const ordered = createBank.filter(r => ids.includes(r.id)).map(r => r.id);
   const status = publish ? 'published' : 'draft';
+  // بنزل الرسالة في الشات بس لو الامتحان كان مش منشور قبل كده (عشان ما يتكررش)
+  const shouldPost = publish && editingExamStatus !== 'published';
 
   let exam;
   if (editingExamId) {
     const { data, error } = await sb.from('quiz_exams')
-      .update({ room: croom, title, question_ids: ordered, status })
+      .update({ room: createRoom, title, question_ids: ordered, status })
       .eq('id', editingExamId)
-      .select('id, room, title');
+      .select('id, room, title, status');
     if (error) return alert(error.message);
-    if (!data || !data.length) return alert('ما اتحفظش الامتحان. مفيش صلاحية على الشعبة دي من حسابك.');
+    if (!data || !data.length) return alert(txt('ما اتحفظش الامتحان. مفيش صلاحية على الشعبة دي من حسابك.', 'Not saved. You have no permission for this class.'));
     exam = data[0];
   } else {
     const { data, error } = await sb.from('quiz_exams')
-      .insert({ room: croom, title, question_ids: ordered, status })
-      .select('id, room, title')
+      .insert({ room: createRoom, title, question_ids: ordered, status })
+      .select('id, room, title, status')
       .single();
     if (error) return alert(error.message);
     exam = data;
   }
 
-  if (publish) {
-    const slot = Number($('publish-slot').value);
-    const { error: msgErr } = await sb.from('messages').insert({
-      user_id: myId,
-      content: `📝 امتحان: ${exam.title}\n${examUrl(exam.id)}`,
-      room: croom,
-      chat_slot: slot,
-      reply_to: null,
-      file_url: null,
-      file_type: null,
-    });
-    if (msgErr) return alert('الامتحان اتحفظ، بس ما اتنزلش في الشات: ' + msgErr.message);
-    alert(`اتحفظ ونزل في الشات ${slot}`);
+  if (shouldPost) {
+    const ok = await postExamToChat(exam);
+    if (!ok) return;
+    alert(txt(`اتحفظ ونزل في الشات ${currentChatSlot()}`, `Saved and posted in chat ${currentChatSlot()}`));
   } else {
-    alert('اتحفظ الامتحان في السجل');
+    alert(publish
+      ? txt('اتحفظ الامتحان', 'Exam saved')
+      : txt('اتحفظ الامتحان في السجل كمسودة', 'Exam saved as a draft in history'));
   }
 
   closeCreate();
@@ -561,7 +688,7 @@ async function loadHistory() {
 
   if (!rows.length) {
     const p = el('p', 'empty-line');
-    p.textContent = 'مفيش امتحانات محفوظة لسه';
+    p.textContent = txt('مفيش امتحانات محفوظة لسه', 'No saved exams yet');
     list.appendChild(p);
     return;
   }
@@ -571,27 +698,37 @@ async function loadHistory() {
 
     const title = el('div', 'bank-q');
     title.textContent = '📝 ' + ex.title;
-    const pill = el('span', 'pill ' + (ex.status === 'published' ? 'pub' : 'draft'));
-    pill.textContent = ex.status === 'published' ? 'منشور' : 'مسودة';
+    const isPub = ex.status === 'published';
+    const pill = el('span', 'pill ' + (isPub ? 'pub' : 'draft'));
+    pill.textContent = isPub ? txt('منشور', 'Published') : txt('مسودة', 'Draft');
     title.appendChild(pill);
 
     const meta = el('div', 'exam-meta');
-    meta.textContent = `${roomLabel(ex.room)} · ${ex.question_ids.length} سؤال · ${new Date(ex.created_at).toLocaleString('ar-EG')}`;
+    meta.textContent = `${roomLabel(ex.room)} · ${ex.question_ids.length} ${txt('سؤال', 'questions')} · ${new Date(ex.created_at).toLocaleString(isEn ? 'en-GB' : 'ar-EG')}`;
 
     const btns = el('div', 'row-btns');
-    const edit = btn('✏️ تعديل');
+
+    const edit = btn(txt('✏️ تعديل', '✏️ Edit'));
     edit.onclick = () => {
       $('history-box').hidden = true;
       openCreate(ex);
     };
-    const preview = btn('👁️ معاينة');
+
+    const preview = btn(txt('👁️ معاينة', '👁️ Preview'));
     preview.onclick = () => window.open(examUrl(ex.id), '_blank', 'noopener');
-    const del = btn('🗑️ حذف', 'danger');
+
+    if (!isPub) {
+      const pub = btn(txt('📤 نشر', '📤 Publish'));
+      pub.onclick = () => publishDraft(ex);
+      btns.appendChild(pub);
+    }
+
+    const del = btn(txt('🗑️ حذف', '🗑️ Delete'), 'danger');
     del.onclick = async () => {
-      if (!confirm(`تمسح الامتحان "${ex.title}"؟`)) return;
+      if (!confirm(txt(`تمسح الامتحان "${ex.title}"؟`, `Delete exam "${ex.title}"?`))) return;
       const { data: gone, error: delErr } = await sb.from('quiz_exams').delete().eq('id', ex.id).select('id');
       if (delErr) return alert(delErr.message);
-      if (!gone || !gone.length) return alert('ما اتمسحش الامتحان. مفيش صلاحية على الشعبة دي من حسابك.');
+      if (!gone || !gone.length) return alert(txt('ما اتمسحش الامتحان. مفيش صلاحية على الشعبة دي من حسابك.', 'Not deleted. You have no permission for this class.'));
       await loadHistory();
     };
 
@@ -606,9 +743,28 @@ async function loadHistory() {
   });
 }
 
+// نشر مسودة من السجل: بيتغير حالتها لمنشور وبينزل في الشات
+async function publishDraft(ex) {
+  if (!confirm(txt(`تنشر الامتحان "${ex.title}" في الشات ${currentChatSlot()}؟`,
+    `Publish exam "${ex.title}" in chat ${currentChatSlot()}?`))) return;
+  const { data, error } = await sb.from('quiz_exams')
+    .update({ status: 'published' })
+    .eq('id', ex.id)
+    .select('id, room, title, status');
+  if (error) return alert(error.message);
+  if (!data || !data.length) return alert(txt('ما اتنشرش الامتحان. مفيش صلاحية على الشعبة دي من حسابك.', 'Not published. You have no permission for this class.'));
+  const ok = await postExamToChat(data[0]);
+  if (ok) alert(txt(`اتنشر في الشات ${currentChatSlot()}`, `Published in chat ${currentChatSlot()}`));
+  await loadHistory();
+}
+
 // ---------- التشغيل ----------
 async function init() {
   setPickersFromRoom();
+  applyStaticText();
+  applyTheme();
+  $('lang-toggle').addEventListener('click', toggleLang);
+  $('theme-toggle').addEventListener('click', toggleTheme);
 
   $('track').addEventListener('change', loadRoom);
   $('level').addEventListener('change', loadRoom);
@@ -624,25 +780,11 @@ async function init() {
   $('create-open').addEventListener('click', () => openCreate(null));
   $('create-cancel').addEventListener('click', closeCreate);
   $('pick-all').addEventListener('click', togglePickAll);
+  $('exam-limit').addEventListener('input', applyLimit);
   $('save-draft').addEventListener('click', () => saveExam(false));
   $('save-publish').addEventListener('click', () => saveExam(true));
-  $('c-track').addEventListener('change', () => loadCreateList([]));
-  $('c-level').addEventListener('change', () => loadCreateList([]));
 
   $('history-btn').addEventListener('click', toggleHistory);
-
-  // خلفية: متحركة (الافتراضي) أو هادية، والاختيار بيتحفظ
-  const applyBg = () => {
-    let calm = false;
-    try { calm = localStorage.getItem('quizBgCalm') === '1'; } catch {}
-    document.body.classList.toggle('calm', calm);
-  };
-  $('bg-toggle').addEventListener('click', () => {
-    const nowCalm = !document.body.classList.contains('calm');
-    try { localStorage.setItem('quizBgCalm', nowCalm ? '1' : '0'); } catch {}
-    applyBg();
-  });
-  applyBg();
 
   let s;
   try {
