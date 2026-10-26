@@ -557,6 +557,8 @@ async function enterChat(userId) {
   $('avatar-gate').classList.add('hidden');
   showScreen('chat-screen');
   await loadMessages();
+  // تشتيت: كل جهاز يستنى عشوائي لحد 8 ثواني قبل الاشتراك، عشان الدخول الجماعي ما يضربش السيرفر مرة واحدة
+  await new Promise(r => setTimeout(r, Math.random() * 8000));
   subscribeToMessages();
   joinTyping();
 }
@@ -1840,6 +1842,7 @@ function renderHistory() {
 
 // ---------- احتياطي: لو الاتصال الحي ما اتفتحش، بنجيب الرسايل الجديدة كل 10 ثواني ----------
 let fallbackTimer = null;
+let pollFails = 0; // عدد المرات اللي الطلب فشل فيها متتالي، عشان نبطّئ
 
 async function pollNewMessages() {
   try {
@@ -1854,7 +1857,8 @@ async function pollNewMessages() {
       ? q.gt('created_at', newest).order('created_at', { ascending: true }).limit(50)
       : q.order('created_at', { ascending: false }).limit(20);
     const { data, error } = await q;
-    if (error || !data) return;
+    if (error || !data) { pollFails++; return; }
+    pollFails = 0;
     let added = false;
     (newest ? data : data.reverse()).forEach(m => {
       if (msgById.has(m.id)) return; // موجودة أصلاً، ما نكررهاش
@@ -1867,12 +1871,14 @@ async function pollNewMessages() {
     }
   } catch {
     // لو فشل، هنحاول تاني في الدورة الجاية
+    pollFails++;
   }
 }
 
 function scheduleFallback() {
-  // كل دورة بوقت عشوائي بين 8 و12 ثانية، عشان الطلبات ما تتجمعش في نفس الثانية
-  const wait = 8000 + Math.random() * 4000;
+  // كل دورة بوقت عشوائي بين 15 و25 ثانية، وكل فشل متتالي بيزوّد الفترة (لحد 5 أضعاف)
+  const base = 15000 + Math.random() * 10000;
+  const wait = base * (1 + Math.min(pollFails, 4));
   fallbackTimer = setTimeout(async () => {
     // لو التاب مخفية (الموبايل مثلاً) ما نسألش السيرفر
     if (!document.hidden) await pollNewMessages();
