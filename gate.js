@@ -129,7 +129,16 @@ $('members-btn').addEventListener('click', () => {
   if (isAdmin) renderCodesAdmin();
 });
 
-sb.auth.onAuthStateChange((event, session) => {
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (session && event === 'SIGNED_IN') {
+    let fresh = false;
+    try {
+      fresh = sessionStorage.getItem('tfm-fresh-login') === '1';
+      sessionStorage.removeItem('tfm-fresh-login');
+    } catch (e) {}
+    // تسجيل دخول جديد: نمسح صلاحيات الشعب، والطالب يكتب الباسورد تاني
+    if (fresh) { try { await sb.rpc('revoke_my_room_access'); } catch (e) {} }
+  }
   if (session) setTimeout(checkRoomGate, 300);
   else hideGate();
 });

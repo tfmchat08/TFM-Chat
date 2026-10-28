@@ -402,6 +402,7 @@ $('auth-submit').onclick = async () => {
   if (!email || !password) return setMsg('auth-msg', t('emailPwReq'));
 
   if (authMode === 'login') {
+    markFreshLogin();
     const { error } = await sb.auth.signInWithPassword({ email, password });
     if (error) setMsg('auth-msg', translateError(error.message));
     return;
@@ -443,8 +444,14 @@ $('forgot-btn').onclick = async () => {
 };
 
 // ---------- تسجيل الدخول بجوجل ----------
+// علامة تسجيل دخول جديد (عشان بوابة الشعب تطلب الباسورد من أول وجديد)
+function markFreshLogin() {
+  try { sessionStorage.setItem('tfm-fresh-login', '1'); } catch (e) {}
+}
+
 $('google-btn').onclick = async () => {
   setMsg('auth-msg', '');
+  markFreshLogin();
   const redirectTo = window.location.origin + window.location.pathname;
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
