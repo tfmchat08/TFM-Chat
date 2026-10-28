@@ -26,10 +26,23 @@ function chatBar() {
   return bar;
 }
 
-// بيرسم الخمس شاتات فوق (من اليمين)
+const CHATS_DEFAULT = 5; // عدد الشاتات الافتراضي في أي شعبة
+const CHATS_MAX = 10;    // أقصى عدد للشاتات في الشعبة الواحدة
+
+// عدد الشاتات الحالي في الشعبة: الافتراضي 5، ولو الأدمن زوّد بيزيد حسب الموجود فعلاً
+function chatCount() {
+  return Math.max(CHATS_DEFAULT, ...chatsInfo.map(c => c.slot));
+}
+
+function isAdminUser() {
+  return !!(currentProfile && currentProfile.role === 'admin');
+}
+
+// بيرسم الشاتات فوق (من اليمين) + زرار الإضافة للأدمن
 function drawChatTabs(bar) {
   bar.innerHTML = '';
-  for (let s = 1; s <= 5; s++) {
+  const count = chatCount();
+  for (let s = 1; s <= count; s++) {
     const c = chatInfo(s);
     const b = document.createElement('button');
     b.type = 'button';
@@ -41,6 +54,38 @@ function drawChatTabs(bar) {
     b.innerHTML = `${pic}<span>${esc(c.name)}</span>`;
     b.onclick = () => switchChat(s);
     bar.appendChild(b);
+  }
+
+  if (isAdminUser()) {
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'chat-tab chat-tab-add';
+    add.title = 'إضافة شات جديد';
+    add.textContent = '+';
+    add.onclick = addChat;
+    bar.appendChild(add);
+  }
+}
+
+// الأدمن بيضيف شات جديد في الشعبة الحالية
+async function addChat() {
+  const count = chatCount();
+  if (count >= CHATS_MAX) return alert(`الحد الأقصى ${CHATS_MAX} شاتات في الشعبة`);
+
+  const slot = count + 1;
+  const name = (prompt('اسم الشات الجديد:', 'شات ' + slot) || '').trim().slice(0, 30);
+  if (!name) return;
+
+  const { error } = await sb.from('chats').insert({
+    room: currentRoom(),
+    slot,
+    name,
+  });
+  if (error) return alert(error.message);
+
+  await window.renderChatTabs();
+  if (document.getElementById('chat-admin-modal') && !document.getElementById('chat-admin-modal').classList.contains('hidden')) {
+    await renderChatAdminRows();
   }
 }
 
@@ -147,7 +192,7 @@ async function renderChatAdminRows() {
   const box = document.getElementById('chat-admin-rows');
   box.innerHTML = '';
 
-  for (let s = 1; s <= 5; s++) {
+  for (let s = 1; s <= chatCount(); s++) {
     const c = chatInfo(s);
     const row = document.createElement('div');
     row.className = 'chat-admin-row';

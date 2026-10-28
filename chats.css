@@ -44,6 +44,16 @@
   color: #fff;
 }
 
+/* زرار "+" لإضافة شات جديد (الأدمن بس) */
+.chat-tab-add {
+  justify-content: center;
+  width: 34px;
+  padding: 3px 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* ---------- إعدادات الشاتات للأدمن ---------- */
 .chat-admin-row {
   display: flex;
