@@ -7,7 +7,7 @@ gateEl.innerHTML = `
   <div class="modal-box">
     <h3 id="gate-title"></h3>
     <p class="hint" id="gate-hint"></p>
-    <input id="gate-code" type="password" dir="ltr" autocomplete="off">
+    <input id="gate-code" type="password" dir="ltr" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
     <button id="gate-join" class="primary"></button>
     <button id="gate-logout" class="ghost"></button>
     <p id="gate-err" class="msg-text"></p>
@@ -54,7 +54,7 @@ async function checkRoomGate() {
 }
 
 $('gate-join').onclick = async () => {
-  const code = $('gate-code').value.trim();
+  const code = $('gate-code').value.trim().toLowerCase();
   if (!code) return;
   const { data, error } = await sb.rpc('join_room', { p_room: currentRoom(), p_code: code });
   if (error) {
@@ -109,7 +109,7 @@ function renderCodesAdmin() {
   btn.className = 'primary';
   btn.textContent = lang === 'en' ? 'Save code' : 'حفظ الكود';
   btn.onclick = async () => {
-    const code = inp.value.trim();
+    const code = inp.value.trim().toLowerCase();
     if (code.length < 4) return alert(lang === 'en' ? 'Min 4 characters' : 'لازم 4 حروف على الأقل');
     const { error } = await sb.rpc('set_room_code', { p_room: room, p_code: code });
     if (error) return alert(error.message);
