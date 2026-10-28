@@ -1322,20 +1322,57 @@ function flashMsg(id) {
 
 $('pinned-bar').onclick = () => flashMsg($('pinned-bar').dataset.id);
 
+// ---------- نسخة محلية للرسايل (عشان تفضل ظاهرة أوف لاين) ----------
+function msgCacheKey() {
+  return `tfm-cache-${currentProfile?.id || 'x'}-${currentRoom()}-${currentChatSlot}`;
+}
+function saveMsgCache(rows) {
+  try { localStorage.setItem(msgCacheKey(), JSON.stringify(rows.slice(-50))); } catch (e) {}
+}
+function loadMsgCache() {
+  try { return JSON.parse(localStorage.getItem(msgCacheKey()) || 'null'); } catch (e) { return null; }
+}
+function showOfflineNote() {
+  const note = document.createElement('div');
+  note.textContent = 'أنت أوف لاين، ده آخر رسايل اتحملت. الرسايل الجديدة هتظهر لما النت يرجع.';
+  note.style.cssText = 'background:#fff3cd;color:#6b4f00;padding:8px 10px;border-radius:6px;margin:8px;font-size:13px;text-align:center;';
+  $('messages').prepend(note);
+}
+
 async function loadMessages() {
   // الشاتات بترسم الأول، عشان تفضل ظاهرة حتى لو الرسايل فشلت
   if (window.renderChatTabs) window.renderChatTabs();
   if (window.loadBadges) await window.loadBadges();
-  const { data, error } = await sb.from('messages')
-    .select('*, profiles(display_name, avatar_url)')
-    .eq('room', currentRoom())
-    .eq('chat_slot', currentChatSlot)
-    .order('created_at', { ascending: true })
-    .limit(300);
-  if (error) {
-    alert(t('loadFail') + error.message);
+  let data = null;
+  let error = null;
+  try {
+    const res = await sb.from('messages')
+      .select('*, profiles(display_name, avatar_url)')
+      .eq('room', currentRoom())
+      .eq('chat_slot', currentChatSlot)
+      .order('created_at', { ascending: true })
+      .limit(300);
+    data = res.data;
+    error = res.error;
+  } catch (e) {
+    error = e;
+  }
+  if (error || !data) {
+    const cached = loadMsgCache();
+    if (cached && cached.length) {
+      $('messages').innerHTML = '';
+      msgById = new Map();
+      reactMap.clear();
+      cached.forEach(renderMessage);
+      renderPinned();
+      showOfflineNote();
+      scrollBottom();
+      return;
+    }
+    alert(t('loadFail') + (error && error.message ? error.message : ''));
     return;
   }
+  saveMsgCache(data);
   $('messages').innerHTML = '';
   msgById = new Map();
   reactMap.clear();
