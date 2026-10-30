@@ -490,7 +490,7 @@ async function init() {
   document.querySelectorAll('.slot-btn').forEach(b => b.addEventListener('click', () => selectSlot(Number(b.dataset.slot))));
   $('add-q').addEventListener('click', () => addQBlock().querySelector('.qb-q').focus());
   $('publish').addEventListener('click', publishExam);
-  $('history-open').addEventListener('click', toggleHistory);
+  $('history-btn').addEventListener('click', toggleHistory);
 
   let u;
   try { u = await checkUser(); } catch { u = { loggedIn: false, staff: false, admin: false, id: null }; }
@@ -500,7 +500,7 @@ async function init() {
 
   // الصفحة فاضية. الأستاذ بس بيشوف ＋
   $('create-open').hidden = !isStaff;
-  $('history-open').hidden = !isAdmin;
+  $('history-btn').hidden = !isAdmin;
 }
 
 init();
