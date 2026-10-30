@@ -282,14 +282,44 @@ async function loadExam() {
 let selSlot = 1;
 let qCount = 0;
 
+let slotList = [];   // [{ slot, name }] أسماء الشاتات من جدول chats للشعبة والمستوى المختارين
+let slotsReq = 0;
+
+function slotName(n) {
+  const s = slotList.find(x => x.slot === n);
+  return s && s.name ? s.name : txt(`شات ${n}`, `Chat ${n}`);
+}
+
 function updatePublishLabel() {
-  $('publish').textContent = txt(`📤 نشر في الشات ${selSlot}`, `📤 Publish to chat ${selSlot}`);
+  $('publish').textContent = txt(`📤 نشر في ${slotName(selSlot)}`, `📤 Publish to ${slotName(selSlot)}`);
 }
 
 function selectSlot(n) {
   selSlot = n;
   document.querySelectorAll('.slot-btn').forEach(b => b.classList.toggle('sel', Number(b.dataset.slot) === n));
   updatePublishLabel();
+}
+
+// بنقرا أسماء الشاتات من قاعدة البيانات كل مرة، فأي اسم يتغيّر بيظهر لوحده
+async function loadSlots() {
+  const req = ++slotsReq;
+  const roomId = `${$('c-track').value}-${$('c-level').value}`;
+  const { data, error } = await sb.from('chats').select('slot, name').eq('room', roomId).order('slot', { ascending: true });
+  if (req !== slotsReq) return; // اتغيّرت الشعبة قبل ما الرد يوصل
+  slotList = (!error && data && data.length)
+    ? data.map(r => ({ slot: Number(r.slot), name: r.name }))
+    : [1, 2, 3, 4, 5].map(n => ({ slot: n, name: '' }));
+
+  const box = $('slots');
+  box.innerHTML = '';
+  slotList.forEach(s => {
+    const b = btn(slotName(s.slot), 'slot-btn');
+    b.dataset.slot = String(s.slot);
+    b.onclick = () => selectSlot(s.slot);
+    box.appendChild(b);
+  });
+  const has = n => slotList.some(s => s.slot === n);
+  selectSlot(has(selSlot) ? selSlot : has(currentChatSlot()) ? currentChatSlot() : slotList[0].slot);
 }
 
 function renumberBlocks() {
@@ -356,8 +386,9 @@ function openSheet() {
   $('exam-title').value = '';
   $('q-blocks').innerHTML = '';
   addQBlock();
-  selectSlot(currentChatSlot());
+  selSlot = currentChatSlot();
   $('sheet').hidden = false;
+  loadSlots();
 }
 function closeSheet() { $('sheet').hidden = true; }
 
@@ -411,7 +442,7 @@ async function publishExam() {
     }
 
     if (!(await postExamToChat(exam, slot))) return;
-    alert(txt(`اتنشر في الشات ${slot}`, `Published to chat ${slot}`));
+    alert(txt(`اتنشر في ${slotName(slot)}`, `Published to ${slotName(slot)}`));
     closeSheet();
     if (isAdmin && !$('history-box').hidden) await loadHistory();
   } finally {
@@ -485,9 +516,9 @@ async function init() {
   $('create-open').addEventListener('click', openSheet);
   $('sheet-close').addEventListener('click', closeSheet);
   $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) closeSheet(); });
-  $('c-track').addEventListener('change', () => saveRoom($('c-track').value, $('c-level').value));
-  $('c-level').addEventListener('change', () => saveRoom($('c-track').value, $('c-level').value));
-  document.querySelectorAll('.slot-btn').forEach(b => b.addEventListener('click', () => selectSlot(Number(b.dataset.slot))));
+  const onRoomPick = () => { saveRoom($('c-track').value, $('c-level').value); loadSlots(); };
+  $('c-track').addEventListener('change', onRoomPick);
+  $('c-level').addEventListener('change', onRoomPick);
   $('add-q').addEventListener('click', () => addQBlock().querySelector('.qb-q').focus());
   $('publish').addEventListener('click', publishExam);
   $('history-btn').addEventListener('click', toggleHistory);
