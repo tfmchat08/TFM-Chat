@@ -9,315 +9,160 @@
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="stylesheet" href="fx.css?v=1">
   <style>
-    :root {
-      --accent: #6e0819;
-      --accent-soft: rgba(110, 8, 25, 0.08);
-      --bg: #ffffff;
-      --card: #ffffff;
-      --line: #e3e3e3;
-      --text: #111111;
-      --muted: #6b6b70;
-      --ok: #1e7b43;
-      --ok-soft: rgba(30, 123, 67, 0.1);
-      --bad: #b3261e;
-      --bad-soft: rgba(179, 38, 30, 0.08);
-      --radius: 14px;
-      --shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    }
-    /* الوضع الداكن: الخلفية سودا */
-    html.dark {
-      --accent: #e05a6e;
-      --accent-soft: rgba(224, 90, 110, 0.14);
-      --bg: #000000;
-      --card: #121212;
-      --line: #2a2a2a;
-      --text: #f2f2f2;
-      --muted: #9a9aa3;
-      --ok-soft: rgba(60, 180, 110, 0.14);
-      --bad-soft: rgba(230, 90, 80, 0.14);
-      --shadow: none;
-    }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
-      margin: 0;
-      padding: 16px;
-      min-height: 100vh;
-      line-height: 1.6;
-    }
-    * { box-sizing: border-box; }
-    [hidden] { display: none !important; }
-    .wrap { max-width: 760px; margin: 0 auto; }
+    :root { --accent:#6e0819; --accent-soft:rgba(110,8,25,.08); --bg:#fff; --card:#fff; --line:#e3e3e3; --text:#111; --muted:#6b6b70; --ok:#1e7b43; --ok-soft:rgba(30,123,67,.1); --bad:#b3261e; --bad-soft:rgba(179,38,30,.08); --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.05); }
+    html.dark { --accent:#e05a6e; --accent-soft:rgba(224,90,110,.14); --bg:#000; --card:#121212; --line:#2a2a2a; --text:#f2f2f2; --muted:#9a9aa3; --ok-soft:rgba(60,180,110,.14); --bad-soft:rgba(230,90,80,.14); --shadow:none; }
+    * { box-sizing:border-box; }
+    body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif; margin:0; padding:16px; min-height:100vh; line-height:1.6; }
+    [hidden] { display:none !important; }
+    .wrap { max-width:760px; margin:0 auto; }
 
-    /* ===== الهيدر ===== */
-    .topbar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-    .topbar h1 { margin: 0; font-size: 22px; color: var(--accent); flex: 1; }
-    .topbar .back {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 700;
-      font-size: 14px;
-      padding: 6px 10px;
-      border-radius: 10px;
-      background: var(--accent-soft);
-    }
-    .topbar .group { display: flex; gap: 6px; align-items: center; }
+    /* الهيدر */
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+    .top-nav { display:flex; align-items:center; gap:10px; flex:1 1 auto; min-width:0; }
+    .top-nav h1 { margin:0; font-size:20px; color:var(--accent); white-space:nowrap; }
+    .back { color:var(--accent); text-decoration:none; font-weight:700; font-size:14px; padding:6px 10px; border-radius:10px; background:var(--accent-soft); white-space:nowrap; }
+    .top-tools { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .top-tools select { padding:6px 8px; font-size:13px; }
+    .top-tools button { padding:6px 10px; font-size:13px; min-width:34px; }
 
-    /* ===== أزرار ===== */
-    button, select, input {
-      font: inherit;
-    }
-    button, select {
-      cursor: pointer;
-      border-radius: 10px;
-      border: 1px solid var(--accent);
-      background: transparent;
-      color: var(--accent);
-      padding: 8px 14px;
-      font-size: 14px;
-    }
-    select { border-color: var(--line); color: var(--text); background: var(--card); }
-    button:disabled { opacity: 0.5; cursor: default; }
-    button.primary { background: var(--accent); color: #fff; }
-    button.danger { color: var(--bad); border-color: var(--bad); }
-    button.ghost { border-color: var(--line); color: var(--muted); }
-    button.icon-btn { padding: 6px 11px; font-size: 18px; line-height: 1.2; }
-    button.icon-x { padding: 2px 9px; font-size: 14px; }
+    button, select, input { font:inherit; }
+    button, select { cursor:pointer; border-radius:10px; border:1px solid var(--accent); background:transparent; color:var(--accent); padding:8px 14px; font-size:14px; }
+    select { border-color:var(--line); color:var(--text); background:var(--card); }
+    button:disabled { opacity:.5; cursor:default; }
+    button.primary { background:var(--accent); color:#fff; }
+    button.danger { color:var(--bad); border-color:var(--bad); }
+    button.ghost { border-color:var(--line); color:var(--muted); }
+    button.icon-btn { font-size:17px; line-height:1.2; }
+    button.icon-x { padding:2px 9px; font-size:14px; }
 
-    /* ===== الكروت ===== */
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 16px;
-      box-shadow: var(--shadow);
-      margin-bottom: 16px;
-    }
-    .card h2 { font-size: 16px; margin: 0 0 10px; color: var(--accent); }
-    .hint-line { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
-    .empty-line { color: var(--muted); font-size: 14px; margin: 6px 0; }
-    .count-pill {
-      display: inline-block;
-      min-width: 24px;
-      padding: 0 6px;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent);
-      font-size: 12px;
-      margin-inline-start: 4px;
-      text-align: center;
-    }
-    .pill {
-      display: inline-block;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 2px 10px;
-      border-radius: 999px;
-      margin-inline-start: 6px;
-    }
-    .pill.draft { background: var(--bad-soft); color: var(--bad); }
-    .pill.pub { background: var(--ok-soft); color: var(--ok); }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); margin-bottom:16px; }
+    .card h2 { font-size:16px; margin:0 0 10px; color:var(--accent); }
+    .hint-line { font-size:13px; color:var(--muted); margin:0 0 12px; }
+    .empty-line { color:var(--muted); font-size:14px; margin:6px 0; }
+    .count-pill { display:inline-block; min-width:24px; padding:0 6px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-size:12px; margin-inline-start:4px; text-align:center; }
+    .pill { display:inline-block; font-size:12px; font-weight:700; padding:2px 10px; border-radius:999px; margin-inline-start:6px; }
+    .pill.draft { background:var(--bad-soft); color:var(--bad); }
+    .pill.pub { background:var(--ok-soft); color:var(--ok); }
 
-    /* ===== إنشاء الامتحان ===== */
-    #exam-title,
-    .limit-input,
-    .q-form textarea,
-    .q-form input[type="text"] {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--line);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 15px;
-      font-family: inherit;
-      margin-bottom: 10px;
-    }
-    .limit-input { width: 120px; margin-bottom: 0; }
-    .limit-row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-    }
-    .limit-row .hint-line { margin: 0; flex: 1; }
-    .picked-box {
-      border: 1px dashed var(--line);
-      border-radius: 12px;
-      padding: 10px 12px;
-      margin: 14px 0;
-    }
-    .picked-box h3 { font-size: 14px; margin: 0 0 8px; color: var(--accent); }
-    .picked-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 0;
-      border-bottom: 1px solid var(--line);
-      font-size: 14px;
-    }
-    .picked-row:last-child { border-bottom: 0; }
-    .picked-text { flex: 1; }
-    .create-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-      margin-top: 14px;
-      padding-top: 14px;
-      border-top: 1px dashed var(--line);
-    }
-    .create-actions .spacer { flex: 1; }
+    /* إضافة امتحان */
+    #exam-title, .q-form textarea, .q-form input[type="text"] { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:15px; margin-bottom:10px; }
+    .picked-box { border:1px dashed var(--line); border-radius:12px; padding:10px 12px; margin:6px 0 14px; }
+    .picked-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+    .picked-head h3 { font-size:14px; margin:0; color:var(--accent); }
+    .picked-row { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--line); font-size:14px; }
+    .picked-row:last-child { border-bottom:0; }
+    .picked-text { flex:1; }
+    #pick-area { border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:14px; }
+    .publish-box { margin-top:16px; padding-top:14px; border-top:1px dashed var(--line); }
+    .publish-box h3 { font-size:15px; margin:0 0 10px; color:var(--accent); }
+    .slots { display:grid; grid-template-columns:repeat(auto-fit,minmax(96px,1fr)); gap:8px; margin-bottom:12px; }
+    .slots button { padding:10px 6px; }
+    .publish-foot { display:flex; gap:8px; flex-wrap:wrap; }
 
-    /* ===== فورم السؤال والبنك ===== */
-    .ans-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
-    .ans-row input[type="text"] { margin: 0; flex: 1; }
-    .ans-row input[type="radio"] { width: 18px; height: 18px; accent-color: var(--accent); }
-    .form-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
-    .bank-toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin: 8px 0 10px;
-    }
-    .bank-item {
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 10px;
-      background: var(--card);
-    }
-    .bank-top { display: flex; gap: 10px; align-items: flex-start; }
-    .bank-top input.pick { width: 18px; height: 18px; margin-top: 4px; flex: 0 0 auto; accent-color: var(--accent); }
-    .bank-q { font-weight: 700; flex: 1; }
-    .bank-opts { font-size: 14px; color: var(--muted); margin: 8px 0 10px; padding-inline-start: 28px; }
-    .bank-opts div { line-height: 1.9; }
-    .exam-meta { font-size: 13px; color: var(--muted); margin: 2px 0 8px; }
-    .row-btns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-    .row-btns button { padding: 6px 10px; font-size: 13px; }
+    /* بنك الأسئلة والفورم */
+    .ans-row { display:flex; gap:10px; align-items:center; margin-bottom:8px; }
+    .ans-row input[type="text"] { margin:0; flex:1; }
+    .ans-row input[type="radio"] { width:18px; height:18px; accent-color:var(--accent); }
+    .form-btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+    .bank-toolbar { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 10px; }
+    .bank-item { border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; background:var(--card); }
+    .bank-top { display:flex; gap:10px; align-items:flex-start; }
+    .bank-top input.pick { width:18px; height:18px; margin-top:4px; flex:0 0 auto; accent-color:var(--accent); }
+    .bank-q { font-weight:700; flex:1; }
+    .bank-opts { font-size:14px; color:var(--muted); margin:8px 0 10px; padding-inline-start:28px; }
+    .exam-meta { font-size:13px; color:var(--muted); margin:2px 0 8px; }
+    .row-btns { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+    .row-btns button { padding:6px 10px; font-size:13px; }
 
-    /* ===== الطالب ===== */
-    .picker { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-    .picker select { flex: 1; min-width: 140px; padding: 10px 12px; font-size: 15px; }
-    #exam-head { font-size: 20px; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
-    #status {
-      display: inline-block;
-      color: var(--muted);
-      font-size: 14px;
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 4px 12px;
-      margin-bottom: 14px;
-    }
-    .q {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-left: 4px solid var(--line);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      margin: 0 0 12px;
-      box-shadow: var(--shadow);
-    }
-    .q.ok { border-left-color: var(--ok); background: var(--ok-soft); }
-    .q.bad { border-left-color: var(--bad); background: var(--bad-soft); }
-    .q legend { font-weight: 700; padding: 0; margin-bottom: 8px; font-size: 16px; }
-    .opt {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      padding: 10px 12px;
-      margin-bottom: 6px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      font-size: 15px;
-      cursor: pointer;
-      background: var(--bg);
-    }
-    .opt:hover { border-color: var(--accent); }
-    .opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-    .opt input { width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--accent); }
-    .hint { font-size: 14px; margin-top: 8px; font-weight: 600; }
-    .hint.ok { color: var(--ok); }
-    .hint.bad { color: var(--bad); }
-    .actions { display: flex; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
-    .actions button { padding: 12px 20px; font-size: 16px; }
-    #result {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 18px;
-      font-size: 18px;
-      font-weight: 800;
-      text-align: center;
-      box-shadow: var(--shadow);
-      color: var(--accent);
-    }
+    /* الطالب */
+    #exam-head { font-size:20px; font-weight:800; color:var(--accent); margin-bottom:8px; }
+    #status { display:inline-block; color:var(--muted); font-size:14px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px 12px; margin-bottom:14px; }
+    .q { background:var(--card); border:1px solid var(--line); border-inline-start:4px solid var(--line); border-radius:var(--radius); padding:14px 16px; margin:0 0 12px; box-shadow:var(--shadow); }
+    .q.ok { border-inline-start-color:var(--ok); background:var(--ok-soft); }
+    .q.bad { border-inline-start-color:var(--bad); background:var(--bad-soft); }
+    .q legend { font-weight:700; padding:0; margin-bottom:8px; font-size:16px; }
+    .opt { display:flex; gap:10px; align-items:center; padding:10px 12px; margin-bottom:6px; border:1px solid var(--line); border-radius:10px; font-size:15px; cursor:pointer; background:var(--bg); }
+    .opt:hover, .opt:has(input:checked) { border-color:var(--accent); }
+    .opt:has(input:checked) { background:var(--accent-soft); }
+    .opt input { width:18px; height:18px; flex:0 0 auto; accent-color:var(--accent); }
+    .hint { font-size:14px; margin-top:8px; font-weight:600; }
+    .hint.ok { color:var(--ok); }
+    .hint.bad { color:var(--bad); }
+    .actions { display:flex; gap:8px; margin:14px 0; flex-wrap:wrap; }
+    .actions button { padding:12px 20px; font-size:16px; }
+    #result { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px; font-size:18px; font-weight:800; text-align:center; box-shadow:var(--shadow); color:var(--accent); }
 
-    /* ===== الطباعة ===== */
     @media print {
-      body { background: #fff; color: #000; padding: 0; }
-      .topbar, .picker, #status, .actions, .card, #result { display: none !important; }
-      .q { box-shadow: none; break-inside: avoid; border: 1px solid #999; border-left-width: 1px; }
-      .opt { border: 1px solid #ccc; background: #fff; }
-      .opt input { accent-color: #000; }
+      body { background:#fff; color:#000; padding:0; }
+      .topbar, #status, .actions, .card, #result { display:none !important; }
+      .q { box-shadow:none; break-inside:avoid; border:1px solid #999; }
+      .opt { border:1px solid #ccc; background:#fff; }
     }
+  
+    .sheet-back { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:50; display:flex; align-items:flex-end; justify-content:center; }
+    .sheet { width:100%; max-width:760px; max-height:92vh; overflow-y:auto; background:var(--card); border:1px solid var(--line); border-radius:18px 18px 0 0; padding:16px 16px 24px; }
+    .sheet-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .sheet-head h2 { margin:0; font-size:18px; color:var(--accent); }
+    .row2 { display:flex; gap:8px; margin-bottom:10px; }
+    .row2 select { flex:1; padding:10px; font-size:15px; }
+    .slot-btn.sel { background:var(--accent); color:#fff; }
+    .qb { border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:12px; }
+    .qb-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-weight:700; color:var(--accent); }
+    .qb textarea, .qb input[type="text"] { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:15px; margin-bottom:8px; }
+    .qb .ans-row input[type="text"] { margin:0; }
+    .wide { width:100%; margin-top:8px; }
+    .big { padding:13px; font-size:16px; }
   </style>
 </head>
 <body>
   <div class="wrap">
 
     <header class="topbar">
-      <a class="back" href="./" data-ar="→ رجوع للشات" data-en="Back to chat ←">→ رجوع للشات</a>
-      <h1 data-ar="الاختبارات" data-en="Quizzes">الاختبارات</h1>
-      <div class="group">
-        <button id="history-btn" class="icon-btn ghost" type="button" title="سجل الامتحانات" hidden>🕘</button>
-        <button id="create-open" class="icon-btn primary" type="button" title="إنشاء امتحان" hidden>＋</button>
-        <button id="lang-toggle" class="ghost" type="button">English</button>
+      <div class="top-nav">
+        <a class="back" href="./" data-ar="→ رجوع للشات" data-en="← Back to chat">→ رجوع للشات</a>
+        <h1 data-ar="الاختبارات" data-en="Quizzes">الاختبارات</h1>
+      </div>
+      <div class="top-tools">
+        <button id="lang-toggle" class="ghost" type="button" title="Language">EN</button>
         <button id="theme-toggle" class="icon-btn ghost" type="button" title="الوضع الداكن">🌙</button>
+        <button id="create-open" class="icon-btn primary" type="button" title="إضافة اختبار" hidden>＋</button>
       </div>
     </header>
 
-    <!-- إنشاء / تعديل امتحان (للأستاذ) -->
-    <section id="create-box" class="card" hidden>
-      <h2 id="create-title">➕ إنشاء امتحان</h2>
-      <p id="create-room" class="hint-line"></p>
-      <input type="text" id="exam-title" maxlength="120" data-ph-ar="اسم الامتحان أو اسم المادة" data-ph-en="Exam or subject name" placeholder="اسم الامتحان أو اسم المادة">
-
-      <div class="limit-row">
-        <input type="number" id="exam-limit" class="limit-input" min="1" max="500" data-ph-ar="عدد" data-ph-en="Count" placeholder="عدد">
-        <span class="hint-line" data-ar="اكتب عدد الأسئلة، وهيختار أول الأسئلة لحد الرقم ده. تقدر تشيل أي سؤال بعد كده." data-en="Type a number and the first questions up to it get picked. You can still remove any question.">اكتب عدد الأسئلة، وهيختار أول الأسئلة لحد الرقم ده. تقدر تشيل أي سؤال بعد كده.</span>
+    <!-- قايمة إضافة اختبار: بتطلع من تحت (للأستاذ) -->
+    <div id="sheet" class="sheet-back" hidden>
+      <div class="sheet" role="dialog" aria-modal="true">
+        <div class="sheet-head">
+          <h2 data-ar="إضافة اختبار" data-en="Add a quiz">إضافة اختبار</h2>
+          <button type="button" id="sheet-close" class="ghost icon-x" title="إغلاق">✕</button>
+        </div>
+        <div class="row2">
+          <select id="c-level" aria-label="المستوى">
+            <option value="1" data-ar="المستوى الأول" data-en="Level 1">المستوى الأول</option>
+            <option value="2" data-ar="المستوى الثاني" data-en="Level 2">المستوى الثاني</option>
+            <option value="3" data-ar="المستوى الثالث" data-en="Level 3">المستوى الثالث</option>
+            <option value="4" data-ar="المستوى الرابع" data-en="Level 4">المستوى الرابع</option>
+          </select>
+          <select id="c-track" aria-label="الشعبة">
+            <option value="ar" data-ar="عربي" data-en="Arabic">عربي</option>
+            <option value="en" data-ar="إنجليزي" data-en="English">إنجليزي</option>
+          </select>
+        </div>
+        <input type="text" id="exam-title" maxlength="120" data-ph-ar="اسم الاختبار" data-ph-en="Quiz name" placeholder="اسم الاختبار">
+        <p class="hint-line" data-ar="الاختبار ده لأنهي شات؟" data-en="Which chat is this quiz for?">الاختبار ده لأنهي شات؟</p>
+        <div class="slots" id="slots">
+          <button type="button" class="slot-btn" data-slot="1" data-ar="شات 1" data-en="Chat 1">شات 1</button>
+          <button type="button" class="slot-btn" data-slot="2" data-ar="شات 2" data-en="Chat 2">شات 2</button>
+          <button type="button" class="slot-btn" data-slot="3" data-ar="شات 3" data-en="Chat 3">شات 3</button>
+          <button type="button" class="slot-btn" data-slot="4" data-ar="شات 4" data-en="Chat 4">شات 4</button>
+          <button type="button" class="slot-btn" data-slot="5" data-ar="شات 5" data-en="Chat 5">شات 5</button>
+        </div>
+        <div id="q-blocks"></div>
+        <button type="button" id="add-q" class="ghost wide" data-ar="＋ إضافة سؤال" data-en="＋ Add a question">＋ إضافة سؤال</button>
+        <button type="button" id="publish" class="primary wide big">📤 نشر</button>
+        <button type="button" id="history-open" class="ghost wide" data-ar="🕘 سجل الامتحانات" data-en="🕘 Exam history" hidden>🕘 سجل الامتحانات</button>
       </div>
-
-      <div class="bank-toolbar">
-        <strong data-ar="أسئلة الشعبة" data-en="Class questions">أسئلة الشعبة</strong>
-        <button type="button" class="ghost" id="pick-all" data-ar="☑️ تحديد الكل" data-en="☑️ Select all">☑️ تحديد الكل</button>
-      </div>
-      <div id="create-list"></div>
-
-      <div class="picked-box">
-        <h3><span data-ar="الأسئلة اللي في الامتحان" data-en="Questions in this exam">الأسئلة اللي في الامتحان</span> <span class="count-pill" id="picked-count">0</span></h3>
-        <div id="picked-list"></div>
-      </div>
-
-      <div class="create-actions">
-        <span class="spacer"></span>
-        <button type="button" class="ghost" id="save-draft" data-ar="💾 حفظ مسودة" data-en="💾 Save draft">💾 حفظ مسودة</button>
-        <button type="button" class="primary" id="save-publish" data-ar="📤 حفظ ونشر في الشات" data-en="📤 Save & publish to chat">📤 حفظ ونشر في الشات</button>
-        <button type="button" class="ghost" id="create-cancel" data-ar="إلغاء" data-en="Cancel">إلغاء</button>
-      </div>
-    </section>
+    </div>
 
     <!-- سجل الامتحانات (للأدمن) -->
     <section id="history-box" class="card" hidden>
@@ -325,59 +170,14 @@
       <div id="history-list"></div>
     </section>
 
-    <!-- بنك أسئلة الشعبة (للأستاذ) -->
-    <section id="staff-box" class="card" hidden>
-      <h2><span data-ar="📚 أسئلة الشعبة" data-en="📚 Class questions">📚 أسئلة الشعبة</span> <span class="count-pill" id="count-staff">0</span></h2>
-      <div id="bank-list"></div>
-
-      <h2 id="form-title" style="margin-top:18px" data-ar="➕ سؤال جديد" data-en="➕ New question">➕ سؤال جديد</h2>
-      <form id="add-form" class="q-form" autocomplete="off">
-        <textarea id="new-q" rows="2" maxlength="500" data-ph-ar="نص السؤال" data-ph-en="Question text" placeholder="نص السؤال"></textarea>
-        <div class="ans-row">
-          <input type="radio" name="new-ans" value="0" checked>
-          <input type="text" class="new-opt" maxlength="200" data-ph-ar="الاختيار 1" data-ph-en="Option 1" placeholder="الاختيار 1">
-        </div>
-        <div class="ans-row">
-          <input type="radio" name="new-ans" value="1">
-          <input type="text" class="new-opt" maxlength="200" data-ph-ar="الاختيار 2" data-ph-en="Option 2" placeholder="الاختيار 2">
-        </div>
-        <div class="ans-row">
-          <input type="radio" name="new-ans" value="2">
-          <input type="text" class="new-opt" maxlength="200" data-ph-ar="الاختيار 3 (اختياري)" data-ph-en="Option 3 (optional)" placeholder="الاختيار 3 (اختياري)">
-        </div>
-        <div class="ans-row">
-          <input type="radio" name="new-ans" value="3">
-          <input type="text" class="new-opt" maxlength="200" data-ph-ar="الاختيار 4 (اختياري)" data-ph-en="Option 4 (optional)" placeholder="الاختيار 4 (اختياري)">
-        </div>
-        <p class="hint-line" data-ar="علّم على الدايرة جنب الاختيار الصح. الاختيارات الفاضية بتتجاهل." data-en="Mark the circle next to the correct option. Empty options are ignored.">علّم على الدايرة جنب الاختيار الصح. الاختيارات الفاضية بتتجاهل.</p>
-        <div class="form-btns">
-          <button type="submit" class="primary" id="save-btn" data-ar="حفظ السؤال" data-en="Save question">حفظ السؤال</button>
-          <button type="button" id="cancel-edit" class="ghost" data-ar="إلغاء" data-en="Cancel" hidden>إلغاء</button>
-        </div>
-      </form>
-    </section>
-
-    <!-- اختيار الشعبة والمستوى -->
-    <div class="picker">
-      <select id="track" aria-label="الشعبة">
-        <option value="ar" data-ar="عربي" data-en="Arabic">عربي</option>
-        <option value="en" data-ar="انجليزي" data-en="English">انجليزي</option>
-      </select>
-      <select id="level" aria-label="المستوى">
-        <option value="1" data-ar="الصف الأول" data-en="Level 1">الصف الأول</option>
-        <option value="2" data-ar="الصف الثاني" data-en="Level 2">الصف الثاني</option>
-        <option value="3" data-ar="الصف الثالث" data-en="Level 3">الصف الثالث</option>
-        <option value="4" data-ar="الصف الرابع" data-en="Level 4">الصف الرابع</option>
-      </select>
-    </div>
-
+    <!-- الامتحان (بيظهر بس من رابط ?exam=ID) -->
     <div id="exam-head" hidden></div>
-    <div id="status"></div>
+    <div id="status" hidden></div>
     <form id="quiz" autocomplete="off"></form>
 
     <div class="actions">
       <button id="submit" class="primary" type="button" data-ar="تصحيح" data-en="Check" hidden>تصحيح</button>
-      <button id="reset" class="ghost" type="button" data-ar="اختبار جديد" data-en="New quiz" hidden>اختبار جديد</button>
+      <button id="reset" class="ghost" type="button" data-ar="إعادة المحاولة" data-en="Try again" hidden>إعادة المحاولة</button>
       <button id="print-btn" class="ghost" type="button" data-ar="🖨️ طباعة" data-en="🖨️ Print" hidden>🖨️ طباعة</button>
     </div>
 
@@ -387,6 +187,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
   <script src="icons.js?v=1"></script>
   <script src="fx.js?v=2"></script>
-  <script src="quiz.js?v=2"></script>
+  <script src="quiz.js?v=4"></script>
 </body>
 </html>
