@@ -1,22 +1,37 @@
-// ---------- أزرار "الاختبارات" و"درجات امتحاناتي" في الإعدادات ----------
+// ---------- الاختبارات: زرار في الهيدر جنب 📚 (الواجبات)، وبنود الإعدادات ----------
 (() => {
-  const btn = document.getElementById('set-quiz');
-  if (!btn) return;
-  const modal = document.getElementById('settings-modal');
-
   const isEn = typeof lang !== 'undefined' && lang === 'en';
-  btn.textContent = isEn ? '📝 Quizzes' : '📝 الاختبارات';
-  btn.onclick = () => {
-    modal.classList.add('hidden');
+  const modal = document.getElementById('settings-modal');
+  const goQuiz = () => {
+    if (modal) modal.classList.add('hidden');
     window.location.href = 'quiz.html';
   };
+
+  // زرار 📝 في الهيدر جنب زرار 📚 (ملفات المادة والواجبات)
+  const mat = document.getElementById('materials-btn');
+  if (mat && !document.getElementById('quiz-btn')) {
+    const q = document.createElement('button');
+    q.id = 'quiz-btn';
+    q.type = 'button';
+    q.className = mat.className;
+    q.title = isEn ? 'Quizzes' : 'الاختبارات';
+    q.textContent = '📝';
+    q.onclick = goQuiz;
+    mat.insertAdjacentElement('afterend', q);
+  }
+
+  const btn = document.getElementById('set-quiz');
+  if (!btn) return;
+
+  btn.textContent = isEn ? '📝 Quizzes' : '📝 الاختبارات';
+  btn.onclick = goQuiz;
 
   // درجات امتحاناتي: للأدمن والمدرسين بس
   const g = btn.cloneNode(false);
   g.id = 'set-grades';
   g.textContent = isEn ? '📊 My exam grades' : '📊 درجات امتحاناتي';
   g.onclick = () => {
-    modal.classList.add('hidden');
+    if (modal) modal.classList.add('hidden');
     window.location.href = 'quiz.html?grades=1';
   };
   btn.insertAdjacentElement('afterend', g);

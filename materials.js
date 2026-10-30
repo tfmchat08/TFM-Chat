@@ -11,6 +11,9 @@
   const canUpload = isStaff;
   const esc2 = (s) => (typeof esc === 'function' ? esc(s) : String(s));
   const safeName = (n) => n.replace(/[^\w.\-]/g, '_');
+  const safeUrl = (u) => (/^https?:\/\//i.test(String(u || '')) ? String(u) : '');
+  const MAX_FILE = 10 * 1024 * 1024; // 10MB زي باقي المنصة
+  const MAX_IMAGES = 10;
 
   function fmtDate(iso) {
     try { return new Date(iso).toLocaleDateString('ar-EG'); } catch (e) { return ''; }
@@ -127,14 +130,56 @@
     await loadAssign();
   }
 
+  // رابط وصور وملف الواجب نفسه (اللي حطه الأدمن/المرسل)
+  function renderAttachments(a, info) {
+    const link = safeUrl(a.link_url);
+    const atts = Array.isArray(a.attachments) ? a.attachments : [];
+    if (!link && !atts.length) return;
+
+    const box = document.createElement('div');
+    box.style.cssText = 'margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;';
+
+    if (link) {
+      const l = document.createElement('a');
+      l.href = link;
+      l.target = '_blank';
+      l.rel = 'noopener noreferrer';
+      l.textContent = '🔗 رابط الواجب';
+      box.appendChild(l);
+    }
+    atts.forEach((f) => {
+      const url = safeUrl(f && f.url);
+      if (!url) return;
+      const l = document.createElement('a');
+      l.href = url;
+      l.target = '_blank';
+      l.rel = 'noopener noreferrer';
+      if (f.type === 'image') {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = f.name || '';
+        img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;';
+        l.appendChild(img);
+      } else {
+        l.textContent = `📎 ${f.name || 'ملف'}`;
+      }
+      box.appendChild(l);
+    });
+    info.appendChild(box);
+  }
+
   async function loadAssign() {
     if (!asList) return;
     const room = currentRoom();
-    const [aRes, sRes, gRes] = await Promise.all([
-      sb.from('room_assignments')
-        .select('id, title, details, due_at, created_by')
-        .eq('room', room)
-        .order('due_at', { ascending: true, nullsFirst: false }),
+    const pickAssign = (cols) => sb.from('room_assignments')
+      .select(cols)
+      .eq('room', room)
+      .order('due_at', { ascending: true, nullsFirst: false });
+    // لو أعمدة الرابط والمرفقات لسه مااتضافتش في قاعدة البيانات، نقرا من غيرهم
+    let aRes = await pickAssign('id, title, details, due_at, created_by, link_url, attachments');
+    if (aRes.error) aRes = await pickAssign('id, title, details, due_at, created_by');
+
+    const [sRes, gRes] = await Promise.all([
       sb.from('assignment_submissions')
         .select('id, assignment_id, user_id, file_url, file_name, submitted_at')
         .eq('room', room),
@@ -168,6 +213,7 @@
       info.innerHTML = `<b>📝 ${esc2(a.title)}</b>${late ? ' <span class="late">(انتهى)</span>' : ''}`
         + `<br><small>⏰ ${esc2(fmtDue(a.due_at))}</small>`
         + (a.details ? `<br><small>${esc2(a.details)}</small>` : '');
+      renderAttachments(a, info);
       row.appendChild(info);
 
       const mySub = subs.find((s) => s.assignment_id === a.id && s.user_id === me);
@@ -347,22 +393,93 @@
 
   if (icsBtn) icsBtn.onclick = exportIcs;
 
+  // ===== فورم الواجب: اسم + ميعاد + (رابط أو صور أو ملف) إجباري =====
+  let linkIn = null;
+  let imgIn = null;
+  let fileIn = null;
+
   if (asForm) {
+    const dueEl = document.getElementById('assign-due');
+    if (dueEl) dueEl.required = true;
+
+    const mkHint = (text) => {
+      const s = document.createElement('small');
+      s.className = 'hint';
+      s.style.cssText = 'display:block;margin-top:6px;';
+      s.textContent = text;
+      return s;
+    };
+    linkIn = document.createElement('input');
+    linkIn.type = 'url';
+    linkIn.id = 'assign-link';
+    linkIn.dir = 'ltr';
+    linkIn.placeholder = '🔗 رابط الواجب';
+    imgIn = document.createElement('input');
+    imgIn.type = 'file';
+    imgIn.id = 'assign-images';
+    imgIn.accept = 'image/*';
+    imgIn.multiple = true;
+    fileIn = document.createElement('input');
+    fileIn.type = 'file';
+    fileIn.id = 'assign-file';
+
+    const submitEl = asForm.querySelector('button[type="submit"]');
+    [
+      mkHint('ميعاد التسليم إجباري. ولازم تحط واحد على الأقل من التلاتة دول: رابط، أو صور، أو ملف.'),
+      linkIn,
+      mkHint('🖼️ صور الواجب (تقدر تختار أكتر من صورة)'),
+      imgIn,
+      mkHint('📎 ملف الواجب'),
+      fileIn,
+    ].forEach((n) => asForm.insertBefore(n, submitEl));
+
     asForm.onsubmit = async (e) => {
       e.preventDefault();
       const title = document.getElementById('assign-title').value.trim();
       const details = document.getElementById('assign-details').value.trim();
-      const dueRaw = document.getElementById('assign-due').value;
+      const dueRaw = dueEl.value;
+      const link = linkIn.value.trim();
+      const imgs = Array.from(imgIn.files || []);
+      const file = fileIn.files && fileIn.files[0];
+
       if (title.length < 2) return alert('اكتب اسم الواجب');
-      const { error } = await sb.from('room_assignments').insert({
-        room: currentRoom(),
-        title,
-        details: details || null,
-        due_at: dueRaw ? new Date(dueRaw).toISOString() : null,
-      });
-      if (error) return alert(error.message);
-      asForm.reset();
-      await loadAssign();
+      if (!dueRaw) return alert('حدد ميعاد تسليم الواجب');
+      if (!link && !imgs.length && !file) return alert('لازم تحط رابط الواجب، أو صور، أو ملف');
+      if (link && !/^https?:\/\/\S+$/i.test(link)) return alert('الرابط لازم يبدأ بـ http:// أو https://');
+      if (imgs.length > MAX_IMAGES) return alert(`الحد الأقصى ${MAX_IMAGES} صور`);
+      if ([...imgs, file].some((f) => f && f.size > MAX_FILE)) return alert('كل ملف أو صورة لازم يكون أقل من 10 ميجا');
+
+      const submitBtn = asForm.querySelector('button[type="submit"]');
+      const oldText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ جاري الرفع...';
+      try {
+        const attachments = [];
+        const queue = [...imgs.map((f) => ({ f, type: 'image' })), ...(file ? [{ f: file, type: 'file' }] : [])];
+        for (let i = 0; i < queue.length; i++) {
+          const { f, type } = queue[i];
+          const path = `${currentProfile.id}/assign-files/${currentRoom()}/${Date.now()}_${i}_${safeName(f.name)}`;
+          const { error: upErr } = await sb.storage.from('uploads').upload(path, f, { contentType: f.type });
+          if (upErr) return alert(t('uploadFail') + upErr.message);
+          const { data } = sb.storage.from('uploads').getPublicUrl(path);
+          attachments.push({ url: data.publicUrl, name: f.name, type });
+        }
+
+        const { error } = await sb.from('room_assignments').insert({
+          room: currentRoom(),
+          title,
+          details: details || null,
+          due_at: new Date(dueRaw).toISOString(),
+          link_url: link || null,
+          attachments,
+        });
+        if (error) return alert(error.message);
+        asForm.reset();
+        await loadAssign();
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = oldText;
+      }
     };
   }
 
