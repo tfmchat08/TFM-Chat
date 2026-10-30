@@ -19,13 +19,34 @@
     try { return new Date(iso).toLocaleDateString('ar-EG'); } catch (e) { return ''; }
   }
 
+  // أسماء الشاتات بتتقرا من جدول chats كل مرة، فأي اسم يتغيّر بيظهر لوحده
+  const currentSlot = () => Number(localStorage.getItem('chatSlot')) || 1;
+  let chatNames = [];   // [{ slot, name }]
+  async function loadChatNames() {
+    const { data, error } = await sb.from('chats').select('slot, name').eq('room', currentRoom()).order('slot', { ascending: true });
+    chatNames = (!error && data && data.length)
+      ? data.map((r) => ({ slot: Number(r.slot), name: r.name }))
+      : [1, 2, 3, 4, 5].map((n) => ({ slot: n, name: '' }));
+  }
+  const slotName = (n) => {
+    const c = chatNames.find((x) => x.slot === n);
+    return c && c.name ? c.name : `شات ${n}`;
+  };
+
   // ===== ملفات المادة =====
   async function load() {
     list.innerHTML = '<p class="empty">...</p>';
-    const { data, error } = await sb.from('room_files')
-      .select('id, title, file_url, file_name, uploaded_by, created_at')
+    const pickFiles = (cols) => sb.from('room_files')
+      .select(cols)
       .eq('room', currentRoom())
       .order('created_at', { ascending: false });
+    // لو عمود chat_slot لسه مااتضافش في قاعدة البيانات، نقرا من غيره
+    let res = await pickFiles('id, title, file_url, file_name, uploaded_by, created_at, chat_slot');
+    if (res.error) res = await pickFiles('id, title, file_url, file_name, uploaded_by, created_at');
+    const error = res.error;
+    let data = res.data;
+    // الطالب بيشوف ملفات شاته هو (والملفات القديمة للشعبة كلها)، والأدمن/المرسل بيشوف الكل
+    if (data && !isStaff()) data = data.filter((f) => f.chat_slot == null || f.chat_slot === currentSlot());
     if (error) {
       list.innerHTML = `<p class="empty">${esc2(error.message)}</p>`;
       return;
@@ -48,7 +69,7 @@
 
       const meta = document.createElement('small');
       meta.className = 'mat-meta';
-      meta.textContent = fmtDate(f.created_at);
+      meta.textContent = (f.chat_slot ? `${slotName(f.chat_slot)} · ` : '') + fmtDate(f.created_at);
 
       row.appendChild(a);
       row.appendChild(meta);
@@ -71,7 +92,10 @@
     });
   }
 
+  let slotSel = null;   // قايمة اختيار الشات اللي الملف ليه
+
   async function upload(file) {
+    const slot = slotSel ? Number(slotSel.value) : currentSlot();
     const path = `${currentProfile.id}/materials/${currentRoom()}/${Date.now()}_${safeName(file.name)}`;
     const { error: upErr } = await sb.storage.from('uploads').upload(path, file, { contentType: file.type });
     if (upErr) return alert(t('uploadFail') + upErr.message);
@@ -82,6 +106,7 @@
       title: file.name,
       file_url: data.publicUrl,
       file_name: file.name,
+      chat_slot: slot,
     });
     if (insErr) return alert(insErr.message);
     await load();
@@ -483,10 +508,36 @@
     };
   }
 
+  function fillSlotSelect() {
+    if (!slotSel) {
+      const hint = document.createElement('small');
+      hint.className = 'hint';
+      hint.style.cssText = 'display:block;margin-bottom:4px;';
+      hint.textContent = 'الملف ده لأنهي شات؟';
+      slotSel = document.createElement('select');
+      slotSel.id = 'materials-chat';
+      slotSel.style.cssText = 'width:100%;margin-bottom:8px;';
+      uploadBox.insertBefore(slotSel, uploadBox.firstChild);
+      uploadBox.insertBefore(hint, slotSel);
+    }
+    const keep = slotSel.value;
+    slotSel.innerHTML = '';
+    chatNames.forEach((c) => {
+      const o = document.createElement('option');
+      o.value = String(c.slot);
+      o.textContent = slotName(c.slot);
+      slotSel.appendChild(o);
+    });
+    const want = chatNames.some((c) => String(c.slot) === keep) ? keep : String(currentSlot());
+    slotSel.value = chatNames.some((c) => String(c.slot) === want) ? want : String(chatNames[0].slot);
+  }
+
   btn.onclick = async () => {
     panel.classList.remove('hidden');
     uploadBox.classList.toggle('hidden', !canUpload());
     if (asForm) asForm.classList.toggle('hidden', !canUpload());
+    await loadChatNames();
+    if (canUpload()) fillSlotSelect();
     await Promise.all([load(), loadAssign()]);
   };
   document.getElementById('materials-close').onclick = () => panel.classList.add('hidden');
