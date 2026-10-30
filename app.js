@@ -253,6 +253,30 @@ function esc(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// نص الرسالة: رابط الامتحان بيظهر باسم الامتحان، وأي رابط تاني بيتفتح بالدوس عليه
+function messageBodyHtml(content) {
+  const raw = String(content ?? '');
+  const ex = raw.match(/^📝 امتحان: ([^\n]+)\n(https?:\/\/\S+)\s*$/);
+  if (ex && /[?&]exam=\d+/.test(ex[2])) {
+    try {
+      if (new URL(ex[2]).origin === location.origin) {
+        return `<a class="exam-link" href="${esc(ex[2])}" style="display:inline-block;padding:8px 12px;border-radius:10px;background:rgba(110,8,25,.12);font-weight:700;text-decoration:none;color:inherit">📝 ${esc(ex[1])}</a>`;
+      }
+    } catch (e) { /* رابط مش صالح: نكمل عادي */ }
+  }
+  let out = '';
+  let last = 0;
+  const re = /https?:\/\/[^\s<>"']+/g;
+  let m;
+  while ((m = re.exec(raw))) {
+    const url = m[0].replace(/[.,;:!?)\]،؟]+$/, '');
+    out += esc(raw.slice(last, m.index)) + `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(url)}</a>`;
+    last = m.index + url.length;
+    re.lastIndex = last;
+  }
+  return out + esc(raw.slice(last));
+}
+
 function showScreen(id) {
   ['auth-screen', 'recovery-screen', 'chat-screen'].forEach(s => $(s).classList.add('hidden'));
   $(id).classList.remove('hidden');
@@ -1254,7 +1278,7 @@ function buildMessageEl(m) {
 
   if (m.content) {
     const edited = m.edited_at ? `<span class="edited">${t('editedLabel')}</span>` : '';
-    html += `<div>${esc(m.content)}${edited}</div>`;
+    html += `<div>${messageBodyHtml(m.content)}${edited}</div>`;
   }
 
   if (m.file_url) {
