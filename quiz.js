@@ -15,6 +15,9 @@ const txt = (ar, en) => (isEn ? en : ar);
 // لو الرابط فيه ?exam=ID يبقى ده امتحان بيتحل
 const params = new URLSearchParams(location.search);
 const examId = params.get('exam') ? Number(params.get('exam')) : null;
+const gradesMode = params.get('grades') === '1';   // صفحة درجات امتحاناتي
+let myPrivate = null;                              // الاسم الحقيقي والكود من البروفايل (لو موجودين)
+let student = null;                                // { name, code } بيتكتبوا قبل الامتحان
 
 let room = 'ar-1';
 let questions = [];        // اللي الطالب بيحله: [{ id, question, options }]
@@ -238,6 +241,16 @@ async function submitQuiz() {
   $('submit').hidden = true;
   $('reset').hidden = false;
   result.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // بنسجل الدرجة عند المدرس (السيرفر بيحسبها من جديد)
+  if (examId && student) {
+    const { error: sErr } = await sb.rpc('save_quiz_result', {
+      p_exam_id: examId, p_name: student.name, p_code: student.code, p_answers: answers,
+    });
+    setStatus(sErr
+      ? txt('درجتك ظهرت، بس ما اتسجلتش عند المدرس: ', 'Your score is shown but was not recorded: ') + sErr.message
+      : txt('اتسجلت درجتك ✅', 'Your score was recorded ✅'));
+  }
 }
 
 function resetQuiz() {
@@ -274,8 +287,104 @@ async function loadExam() {
     return;
   }
   setStatus(txt(`عدد الأسئلة: ${questions.length}`, `Questions: ${questions.length}`));
+  showEntry();
+}
+
+// ---------- بيانات الطالب قبل الامتحان ----------
+function showEntry() {
+  // الاسم والكود متسجلين في البروفايل: مفيش داعي يكتبهم تاني
+  if (myPrivate) {
+    student = { name: myPrivate.real_name, code: myPrivate.student_code };
+    renderQuiz();
+    $('print-btn').hidden = false;
+    return;
+  }
+  try {
+    $('stu-name').value = localStorage.getItem('stuName') || '';
+    $('stu-code').value = localStorage.getItem('stuCode') || '';
+  } catch {}
+  $('entry').hidden = false;
+}
+
+function startExam() {
+  const name = $('stu-name').value.trim().replace(/\s+/g, ' ');
+  const code = $('stu-code').value.trim();
+  if (name.split(' ').length < 3) return alert(txt('اكتب اسمك ثلاثي', 'Write your full three-part name'));
+  if (!code) return alert(txt('اكتب الكود بتاعك', 'Write your code'));
+  student = { name, code };
+  try { localStorage.setItem('stuName', name); localStorage.setItem('stuCode', code); } catch {}
+  $('entry').hidden = true;
   renderQuiz();
   $('print-btn').hidden = false;
+}
+
+// ---------- درجات امتحاناتي (للأدمن/المدرس: امتحاناته هو بس) ----------
+async function loadGrades() {
+  $('exam-head').textContent = txt('📊 درجات امتحاناتي', '📊 My exam grades');
+  $('exam-head').hidden = false;
+  if (!loggedIn || !isStaff) {
+    setStatus(txt('الصفحة دي للأدمن والمدرسين بس', 'This page is for staff only'));
+    return;
+  }
+  $('grades-box').hidden = false;
+  await renderExamList();
+}
+
+async function renderExamList() {
+  const list = $('grades-list');
+  list.innerHTML = '';
+  $('grades-title').textContent = txt('امتحاناتي', 'My exams');
+  const { data, error } = await sb.from('quiz_exams')
+    .select('id, room, title, question_ids, created_at')
+    .eq('created_by', myId)
+    .order('created_at', { ascending: false });
+  if (error) { list.textContent = error.message; return; }
+  if (!data.length) {
+    const p = el('p', 'empty-line');
+    p.textContent = txt('مفيش امتحانات منشورة باسمك لسه', 'You have no exams yet');
+    list.appendChild(p);
+    return;
+  }
+  data.forEach(ex => {
+    const div = el('div', 'bank-item');
+    const title = el('div', 'bank-q');
+    title.textContent = '📝 ' + ex.title;
+    const meta = el('div', 'exam-meta');
+    meta.textContent = `${roomLabel(ex.room)} · ${ex.question_ids.length} ${txt('سؤال', 'questions')} · ${new Date(ex.created_at).toLocaleString(isEn ? 'en-GB' : 'ar-EG')}`;
+    const open = btn(txt('📊 درجات الطلبة', '📊 Student grades'));
+    open.onclick = () => renderResults(ex);
+    div.appendChild(title); div.appendChild(meta); div.appendChild(open);
+    list.appendChild(div);
+  });
+}
+
+async function renderResults(ex) {
+  const list = $('grades-list');
+  list.innerHTML = '';
+  $('grades-title').textContent = '📝 ' + ex.title;
+  const back = btn(txt('← كل الامتحانات', '← All exams'), 'ghost');
+  back.onclick = renderExamList;
+  list.appendChild(back);
+
+  const { data, error } = await sb.from('quiz_results')
+    .select('student_name, student_code, score, total, created_at')
+    .eq('exam_id', ex.id)
+    .order('student_name', { ascending: true });
+  if (error) { const p = el('p', 'empty-line'); p.textContent = error.message; list.appendChild(p); return; }
+
+  const info = el('p', 'hint-line');
+  info.style.marginTop = '12px';
+  info.textContent = txt(`عدد الطلبة اللي امتحنوا: ${data.length}`, `Students who took it: ${data.length}`);
+  list.appendChild(info);
+  data.forEach(r => {
+    const row = el('div', 'grade-row');
+    const who = el('span');
+    who.textContent = `${r.student_name} · ${r.student_code}`;
+    const sc = el('span', 'grade-score');
+    sc.textContent = `${r.score} / ${r.total}`;
+    row.appendChild(who); row.appendChild(sc);
+    list.appendChild(row);
+  });
 }
 
 // ---------- إضافة اختبار (قايمة من تحت) ----------
@@ -433,7 +542,7 @@ async function publishExam() {
     if (ids.length !== qs.length) return alert(txt('ما اتحفظتش الأسئلة. مفيش صلاحية على الشعبة دي من حسابك.', 'Questions not saved. You have no permission for this class.'));
 
     const { data: exam, error: eErr } = await sb.from('quiz_exams')
-      .insert({ room: roomId, title, question_ids: ids, status: 'published' })
+      .insert({ room: roomId, title, question_ids: ids, status: 'published', created_by: myId })
       .select('id, room, title, status')
       .single();
     if (eErr) {
@@ -521,12 +630,18 @@ async function init() {
   $('c-level').addEventListener('change', onRoomPick);
   $('add-q').addEventListener('click', () => addQBlock().querySelector('.qb-q').focus());
   $('publish').addEventListener('click', publishExam);
+  $('entry-start').addEventListener('click', startExam);
   $('history-btn').addEventListener('click', toggleHistory);
 
   let u;
   try { u = await checkUser(); } catch { u = { loggedIn: false, staff: false, admin: false, id: null }; }
   loggedIn = u.loggedIn; isStaff = u.staff; isAdmin = u.admin; myId = u.id;
+  if (loggedIn && examId) {
+    const { data: pv } = await sb.from('profile_private').select('real_name, student_code').eq('user_id', myId).maybeSingle();
+    if (pv) myPrivate = pv;
+  }
 
+  if (gradesMode) { await loadGrades(); return; }
   if (examId) { await loadExam(); return; }   // الصفحة مش فاضية إلا من رابط امتحان
 
   // الصفحة فاضية. الأستاذ بس بيشوف ＋
