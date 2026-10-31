@@ -121,8 +121,8 @@ function saveRoom(track, level) {
 
 function setPickersFromRoom() {
   const r = readRoom();
-  $('c-track').value = r.track;
-  $('c-level').value = String(r.level);
+  if ($('c-track')) $('c-track').value = r.track;
+  if ($('c-level')) $('c-level').value = String(r.level);
 }
 
 // ---------- المستخدم ----------
@@ -612,26 +612,28 @@ async function loadHistory() {
 }
 
 // ---------- التشغيل ----------
+const on = (id, ev, fn) => { const n = $(id); if (n) n.addEventListener(ev, fn); };
+
 async function init() {
   setPickersFromRoom();
   applyStaticText();
   applyTheme();
-  $('lang-toggle').addEventListener('click', toggleLang);
-  $('theme-toggle').addEventListener('click', toggleTheme);
-  $('submit').addEventListener('click', submitQuiz);
-  $('reset').addEventListener('click', resetQuiz);
-  $('print-btn').addEventListener('click', () => window.print());
+  on('lang-toggle', 'click', toggleLang);
+  on('theme-toggle', 'click', toggleTheme);
+  on('submit', 'click', submitQuiz);
+  on('reset', 'click', resetQuiz);
+  on('print-btn', 'click', () => window.print());
 
-  $('create-open').addEventListener('click', openSheet);
-  $('sheet-close').addEventListener('click', closeSheet);
-  $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) closeSheet(); });
+  on('create-open', 'click', openSheet);
+  on('sheet-close', 'click', closeSheet);
+  on('sheet', 'click', e => { if (e.target === $('sheet')) closeSheet(); });
   const onRoomPick = () => { saveRoom($('c-track').value, $('c-level').value); loadSlots(); };
-  $('c-track').addEventListener('change', onRoomPick);
-  $('c-level').addEventListener('change', onRoomPick);
-  $('add-q').addEventListener('click', () => addQBlock().querySelector('.qb-q').focus());
-  $('publish').addEventListener('click', publishExam);
-  $('entry-start').addEventListener('click', startExam);
-  $('history-btn').addEventListener('click', toggleHistory);
+  on('c-track', 'change', onRoomPick);
+  on('c-level', 'change', onRoomPick);
+  on('add-q', 'click', () => addQBlock().querySelector('.qb-q').focus());
+  on('publish', 'click', publishExam);
+  on('entry-start', 'click', startExam);
+  on('history-btn', 'click', toggleHistory);
 
   let u;
   try { u = await checkUser(); } catch { u = { loggedIn: false, staff: false, admin: false, id: null }; }
@@ -645,8 +647,8 @@ async function init() {
   if (examId) { await loadExam(); return; }   // الصفحة مش فاضية إلا من رابط امتحان
 
   // الصفحة فاضية. الأستاذ بس بيشوف ＋
-  $('create-open').hidden = !isStaff;
-  $('history-btn').hidden = !isAdmin;
+  if ($('create-open')) $('create-open').hidden = !isStaff;
+  if ($('history-btn')) $('history-btn').hidden = !isAdmin;
 }
 
 init();

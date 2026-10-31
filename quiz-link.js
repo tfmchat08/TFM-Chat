@@ -23,9 +23,6 @@
   const btn = document.getElementById('set-quiz');
   if (!btn) return;
 
-  btn.textContent = isEn ? '📝 Quizzes' : '📝 الاختبارات';
-  btn.onclick = goQuiz;
-
   // درجات امتحاناتي: للأدمن والمدرسين بس
   const g = btn.cloneNode(false);
   g.id = 'set-grades';
@@ -35,6 +32,7 @@
     window.location.href = 'quiz.html?grades=1';
   };
   btn.insertAdjacentElement('afterend', g);
+  btn.remove();   // زرار الاختبارات اتشال من الإعدادات، وفضل برا في الهيدر
 
   const isStaff = () => typeof currentProfile !== 'undefined' && !!currentProfile
     && (currentProfile.role === 'admin' || currentProfile.role === 'sender');

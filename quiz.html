@@ -112,6 +112,10 @@
     .qb .ans-row input[type="text"] { margin:0; }
     .wide { width:100%; margin-top:8px; }
     .big { padding:13px; font-size:16px; }
+      #stu-name, #stu-code { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:15px; margin-bottom:10px; }
+    .grade-row { display:flex; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); font-size:14px; }
+    .grade-row:last-child { border-bottom:0; }
+    .grade-score { font-weight:800; color:var(--accent); white-space:nowrap; }
   </style>
 </head>
 <body>
@@ -165,6 +169,20 @@
     </section>
 
     <!-- الامتحان (بيظهر بس من رابط ?exam=ID) -->
+    <!-- درجات امتحاناتي (?grades=1) -->
+    <section id="grades-box" class="card" hidden>
+      <h2 id="grades-title"></h2>
+      <div id="grades-list"></div>
+    </section>
+
+    <!-- بيانات الطالب قبل ما يبدأ الامتحان -->
+    <section id="entry" class="card" hidden>
+      <h2 data-ar="قبل ما تبدأ" data-en="Before you start">قبل ما تبدأ</h2>
+      <input type="text" id="stu-name" maxlength="120" autocomplete="off" data-ph-ar="اسمك ثلاثي" data-ph-en="Your full three-part name" placeholder="اسمك ثلاثي">
+      <input type="text" id="stu-code" maxlength="40" autocomplete="off" data-ph-ar="الكود بتاعك" data-ph-en="Your code" placeholder="الكود بتاعك">
+      <button type="button" id="entry-start" class="primary wide big" data-ar="ابدأ الامتحان" data-en="Start the exam">ابدأ الامتحان</button>
+    </section>
+
     <div id="exam-head" hidden></div>
     <div id="status" hidden></div>
     <form id="quiz" autocomplete="off"></form>
@@ -181,6 +199,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
   <script src="icons.js?v=1"></script>
   <script src="fx.js?v=2"></script>
-  <script src="quiz.js?v=6"></script>
+  <script src="quiz.js?v=7"></script>
 </body>
 </html>
