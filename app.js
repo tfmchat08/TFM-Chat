@@ -253,6 +253,10 @@ function esc(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+function toEnDigits(s) {
+  return String(s ?? '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+}
+
 // نص الرسالة: رابط الامتحان بيظهر باسم الامتحان، وأي رابط تاني بيتفتح بالدوس عليه
 function messageBodyHtml(content) {
   const raw = String(content ?? '');
@@ -560,13 +564,53 @@ async function handleAuthChange(event, session) {
 }
 
 // بوابة إعداد البروفايل: اسم + صورة (ارفع أو اختار من الجاهزة)
+let gatePriv = { available: false, row: null };   // بيانات الاسم الحقيقي والكود الخاصة بالحساب
+
+async function loadMyPrivate(uid) {
+  const { data, error } = await sb.from('profile_private').select('real_name, student_code').eq('user_id', uid).maybeSingle();
+  // لو الجدول لسه مش متعمل، ما نقفلش الدخول على الناس
+  if (error) return { available: false, row: null };
+  return { available: true, row: data };
+}
+
+function ensureGateFields() {
+  if ($('pg-real')) return;
+  const nameEl = $('pg-name');
+  const mk = id => {
+    const i = document.createElement('input');
+    i.id = id;
+    i.type = 'text';
+    i.autocomplete = 'off';
+    i.className = nameEl.className;
+    i.style.cssText = 'width:100%;box-sizing:border-box;margin-bottom:8px;';
+    return i;
+  };
+  const real = mk('pg-real');
+  const code = mk('pg-code');
+  code.inputMode = 'numeric';
+  code.maxLength = 7;
+  nameEl.insertAdjacentElement('beforebegin', real);
+  nameEl.insertAdjacentElement('beforebegin', code);
+}
+
+// بوابة إعداد البروفايل: اسم حقيقي + كود (للأدمن بس) + لقب + صورة
 function openProfileGate() {
   const en = lang === 'en';
+  ensureGateFields();
+  const showPriv = gatePriv.available && !gatePriv.row;
+  $('pg-real').style.display = showPriv ? '' : 'none';
+  $('pg-code').style.display = showPriv ? '' : 'none';
   $('pg-title').textContent = en ? 'Set up your profile' : 'جهّز بروفايلك';
-  $('pg-hint').textContent = en
-    ? 'Choose your display name and a picture (upload one or pick a ready one)'
-    : 'اكتب اسمك واختار صورة (ارفع صورة أو اختار من الجاهزة)';
-  $('pg-name').placeholder = en ? 'Your name' : 'اسمك';
+  $('pg-hint').textContent = showPriv
+    ? (en
+      ? 'Enter your real name, your 7-digit code, a nickname and a picture. Real name and code are visible to admins only'
+      : 'اكتب اسمك الحقيقي وكودك (7 أرقام) ولقبك واختار صورة. الاسم الحقيقي والكود مش بيظهروا غير للأدمن')
+    : (en
+      ? 'Choose your display name and a picture (upload one or pick a ready one)'
+      : 'اكتب اسمك واختار صورة (ارفع صورة أو اختار من الجاهزة)');
+  $('pg-real').placeholder = en ? 'Your real full name (three parts)' : 'اسمك الحقيقي ثلاثي';
+  $('pg-code').placeholder = en ? 'Your code (7 digits)' : 'كودك (7 أرقام)';
+  $('pg-name').placeholder = showPriv ? (en ? 'Your nickname (shown in chat)' : 'لقبك (الاسم اللي بيظهر في الشات)') : (en ? 'Your name' : 'اسمك');
   $('pg-name').value = currentProfile.display_name || '';
   $('gate-msg').textContent = '';
   showScreen('auth-screen');
@@ -580,7 +624,8 @@ async function enterChat(userId) {
   watchKick(currentProfile.id);
 
   // أول دخول (بجوجل أو إيميل) لازم يكتب اسمه ويختار صورة الأول
-  if (!currentProfile.avatar_url || !currentProfile.profile_setup) {
+  gatePriv = await loadMyPrivate(currentProfile.id);
+  if (!currentProfile.avatar_url || !currentProfile.profile_setup || (gatePriv.available && !gatePriv.row)) {
     openProfileGate();
     return;
   }
@@ -600,9 +645,26 @@ $('gate-save').onclick = async () => {
   if (name.length < 2) {
     return setMsg('gate-msg', lang === 'en' ? 'Name must be at least 2 characters' : 'الاسم لازم يكون حرفين على الأقل');
   }
+  const needPriv = gatePriv.available && !gatePriv.row;
+  let realName = '', code = '';
+  if (needPriv) {
+    realName = $('pg-real').value.trim().replace(/\s+/g, ' ');
+    code = toEnDigits($('pg-code').value.trim());
+    if (realName.split(' ').length < 3) {
+      return setMsg('gate-msg', lang === 'en' ? 'Write your real name in three parts' : 'اكتب اسمك الحقيقي ثلاثي');
+    }
+    if (!/^\d{7}$/.test(code)) {
+      return setMsg('gate-msg', lang === 'en' ? 'The code must be exactly 7 digits' : 'الكود لازم 7 أرقام بالظبط');
+    }
+  }
   const file = $('gate-input').files[0];
   const hasAvatar = !!currentProfile.avatar_url;
   if (!file && !window.pickedAvatar && !hasAvatar) return setMsg('gate-msg', t('avatarReq'));
+  if (needPriv) {
+    const { error: pe } = await sb.rpc('save_my_private', { p_real_name: realName, p_code: code });
+    if (pe) return setMsg('gate-msg', pe.message);
+    gatePriv.row = { real_name: realName, student_code: code };
+  }
   try {
     // الصورة بتتحفظ بس لو المستخدم اختار واحدة جديدة
     if (file || window.pickedAvatar) await saveAvatarChoice(file, currentProfile.id);
@@ -691,6 +753,13 @@ async function loadMembers() {
     return;
   }
 
+  // الأدمن بس بيشوف الاسم الحقيقي والكود (الجدول محمي من السيرفر)
+  const privMap = new Map();
+  if (currentProfile && currentProfile.role === 'admin' && data.length) {
+    const { data: pr } = await sb.from('profile_private').select('user_id, real_name, student_code').in('user_id', data.map(x => x.id));
+    (pr || []).forEach(r => privMap.set(r.user_id, r));
+  }
+
   const admins = data.filter(p => p.role === 'admin');
   const others = data.filter(p => p.role !== 'admin');
   box.innerHTML = '';
@@ -711,8 +780,10 @@ async function loadMembers() {
       ? `<img class="member-avatar" src="${esc(p.avatar_url)}" alt="">`
       : `<div class="member-avatar member-initial">${esc(name.charAt(0))}</div>`;
     const banned = p.is_banned && currentProfile && currentProfile.role === 'admin' ? ' 🚫' : '';
+    const priv = privMap.get(p.id);
+    const privLine = priv ? `<small style="display:block;opacity:.75">${esc(priv.real_name)} · ${esc(priv.student_code)}</small>` : '';
 
-    row.innerHTML = `${avatar}<div class="member-info"><b>${esc(name)}${banned}</b><span class="role-tag">${t(ROLE_KEYS[p.role] || 'roleViewer')}</span></div>`;
+    row.innerHTML = `${avatar}<div class="member-info"><b>${esc(name)}${banned}</b>${privLine}<span class="role-tag">${t(ROLE_KEYS[p.role] || 'roleViewer')}</span></div>`;
     // زرار ⋮ بيفتح قايمة الإجراءات لكل عضو
     const more = document.createElement('button');
     more.type = 'button';
@@ -743,15 +814,60 @@ async function loadMembers() {
     if (currentProfile && currentProfile.role === 'admin' && p.id !== currentProfile.id) {
       const who = p.display_name || p.id.slice(0, 8);
 
+      // بروفايل العضو: اللقب والاسم الحقيقي والكود والدور في مكان واحد
+      const en = lang === 'en';
+      const mkInput = (ph, val, max) => {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.placeholder = ph;
+        inp.value = val || '';
+        inp.maxLength = max;
+        inp.className = ($('pg-name') && $('pg-name').className) || '';
+        inp.style.cssText = 'width:100%;box-sizing:border-box;margin-bottom:6px;';
+        return inp;
+      };
+      const nickIn = mkInput(en ? 'Nickname (shown in chat)' : 'اللقب (اسم الشات)', p.display_name, 60);
+      const realIn = mkInput(en ? 'Real full name' : 'الاسم الحقيقي', priv && priv.real_name, 120);
+      const codeIn = mkInput(en ? 'Code (7 digits)' : 'الكود (7 أرقام)', priv && priv.student_code, 7);
+      codeIn.inputMode = 'numeric';
+      const editor = document.createElement('div');
+      editor.style.cssText = 'width:100%;';
+      editor.appendChild(nickIn); editor.appendChild(realIn); editor.appendChild(codeIn);
+      actions.appendChild(editor);
+
+      const roleSel = document.createElement('select');
       ['admin', 'sender', 'viewer'].forEach(r => {
-        const isCurrent = p.role === r;
-        addAction(`${isCurrent ? '✔ ' : ''}${t(ROLE_KEYS[r])}`, async () => {
-          if (isCurrent) return;
-          const { error } = await sb.from('profiles').update({ role: r }).eq('id', p.id);
-          if (error) alert(error.message);
-          else await loadMembers();
-        }, isCurrent ? 'primary' : 'ghost');
+        const o = document.createElement('option');
+        o.value = r;
+        o.textContent = t(ROLE_KEYS[r]);
+        if (p.role === r) o.selected = true;
+        roleSel.appendChild(o);
       });
+      roleSel.onchange = async () => {
+        if (!confirm(`تغيّر دور "${who}" إلى ${t(ROLE_KEYS[roleSel.value])}؟`)) { roleSel.value = p.role; return; }
+        const { error } = await sb.from('profiles').update({ role: roleSel.value }).eq('id', p.id);
+        if (error) { alert(error.message); roleSel.value = p.role; }
+        else await loadMembers();
+      };
+      actions.appendChild(roleSel);
+
+      addAction('💾 حفظ البيانات', async () => {
+        const nick = nickIn.value.trim();
+        const real = realIn.value.trim().replace(/\s+/g, ' ');
+        const code = toEnDigits(codeIn.value.trim());
+        if (nick.length < 2) return alert('اللقب لازم يكون حرفين على الأقل');
+        if (real || code) {
+          if (real.split(' ').length < 3) return alert('الاسم الحقيقي لازم يكون ثلاثي');
+          if (!/^\d{7}$/.test(code)) return alert('الكود لازم 7 أرقام');
+        }
+        const r1 = await sb.from('profiles').update({ display_name: nick }).eq('id', p.id);
+        if (r1.error) return alert(r1.error.message);
+        if (real || code) {
+          const r2 = await sb.from('profile_private').upsert({ user_id: p.id, real_name: real, student_code: code, updated_at: new Date().toISOString() });
+          if (r2.error) return alert(r2.error.message);
+        }
+        await loadMembers();
+      }, 'primary');
 
       addAction(p.is_banned ? t('unkick') : t('kick'), async () => {
         const { error } = await sb.from('profiles').update({ is_banned: !p.is_banned }).eq('id', p.id);
@@ -1378,7 +1494,7 @@ async function loadMessages() {
   let error = null;
   try {
     const res = await sb.from('messages')
-      .select('*, profiles(display_name, avatar_url)')
+      .select('*, profiles(display_name, avatar_url, role)')
       .eq('room', currentRoom())
       .eq('chat_slot', currentChatSlot)
       .order('created_at', { ascending: true })
@@ -1564,7 +1680,10 @@ function openMenu(btn) {
   const isAdmin = currentProfile && currentProfile.role === 'admin';
   const mine = !!(m && currentProfile && m.user_id === currentProfile.id);
 
-  $('menu-delete').classList.toggle('hidden', !(m && (mine || isAdmin)));
+  // الحذف: صاحب الرسالة يمسح رسايله، والأدمن يمسح رسايل غير الأدمن. رسالة الأدمن ماحدش يمسحها غير صاحبها
+  const authorIsAdmin = !!(m && m.profiles && m.profiles.role === 'admin');
+  const canDelete = !!(m && (mine || (isAdmin && !authorIsAdmin)));
+  $('menu-delete').classList.toggle('hidden', !canDelete);
   $('menu-pin').classList.toggle('hidden', !isAdmin);
   $('menu-pin').textContent = m && m.pinned ? t('unpin') : t('pin');
   $('menu-edit').classList.toggle('hidden', !(mine && m && !m.file_url));
@@ -1830,8 +1949,10 @@ $('menu-delete').onclick = () => {
 
 async function deleteMessage(id) {
   if (!confirm(t('deleteAsk'))) return;
-  const { error } = await sb.from('messages').delete().eq('id', id);
+  const { data, error } = await sb.from('messages').delete().eq('id', id).select('id');
   if (error) return alert(t('deleteFail') + error.message);
+  // السيرفر ممكن يرفض من غير خطأ (مفيش صف اتمسح): ما نشيلش الرسالة من الشاشة
+  if (!data || !data.length) return alert(t('deleteFail') + (lang === 'en' ? 'not allowed' : 'مش مسموح'));
   removeMessageEl(id);
 }
 
@@ -1918,7 +2039,7 @@ async function pollNewMessages() {
     let newest = null;
     msgById.forEach(m => { if (!newest || m.created_at > newest) newest = m.created_at; });
     let q = sb.from('messages')
-      .select('*, profiles(display_name, avatar_url)')
+      .select('*, profiles(display_name, avatar_url, role)')
       .eq('room', currentRoom())
       .eq('chat_slot', currentChatSlot);
     q = newest
@@ -1976,7 +2097,7 @@ function subscribeToMessages() {
       if (payload.new.room !== currentRoom() || payload.new.chat_slot !== currentChatSlot) return;
 
       const { data } = await sb.from('messages')
-        .select('*, profiles(display_name, avatar_url)')
+        .select('*, profiles(display_name, avatar_url, role)')
         .eq('id', payload.new.id)
         .maybeSingle();
       if (data) {
