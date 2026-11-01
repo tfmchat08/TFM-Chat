@@ -1,5 +1,5 @@
 // نسخة: النت الأول، والكاش لو مفيش نت (للملفات بتاعة الموقع بس)
-const CACHE = 'tfm-shell-v2';
+const CACHE = 'tfm-shell-v3';
 
 self.addEventListener('install', () => self.skipWaiting());
 
