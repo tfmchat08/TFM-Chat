@@ -218,8 +218,47 @@ async function renderChatAdminRows() {
     row.appendChild(name);
     row.appendChild(file);
     row.appendChild(save);
+
+    if (s > CHATS_DEFAULT && s === chatCount()) {
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'danger';
+      del.textContent = lang === 'en' ? 'Delete' : 'حذف';
+      del.onclick = () => deleteLastChat(s);
+      row.appendChild(del);
+    }
+
     box.appendChild(row);
   }
+}
+
+// حذف آخر شات إضافي بس (مش الخمسة الأساسيين، ومش شات في النص عشان الترقيم ما يتقطعش)
+async function deleteLastChat(slot) {
+  if (slot <= CHATS_DEFAULT || slot !== chatCount()) return;
+  if (!confirm(`تمسح الشات ${slot} وكل رسايله؟ الحركة دي مش بترجع.`)) return;
+
+  // بنمسح الشات الأول، عشان لو الصلاحية مقفولة ما نمسحش الرسايل من غير الشات
+  const { data, error } = await sb.from('chats')
+    .delete()
+    .eq('room', currentRoom())
+    .eq('slot', slot)
+    .select('slot');
+  if (error) return alert(error.message);
+  if (!data || !data.length) return alert('ما اتمسحش الشات. مفيش صلاحية من حسابك.');
+
+  const { error: mErr } = await sb.from('messages')
+    .delete()
+    .eq('room', currentRoom())
+    .eq('chat_slot', slot);
+  if (mErr) alert('الشات اتمسح بس الرسايل ما اتمسحتش: ' + mErr.message);
+
+  if (currentChatSlot === slot) {
+    currentChatSlot = 1;
+    saveChatSlot();
+    loadMessages();
+  }
+  await window.renderChatTabs();
+  await renderChatAdminRows();
 }
 
 async function saveChatRow(slot, nameInput, fileInput, btn) {
