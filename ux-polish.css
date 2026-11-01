@@ -710,6 +710,54 @@
   cursor: progress;
 }
 
+/* ===== الاستخدام اليومي: عداد الشاتات، حالة الاتصال، السحب، اللصق ===== */
+
+/* عداد الرسايل الجديدة على تبويبة الشات */
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-inline-start: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  animation: tfmPop .2s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+/* نقطة حالة الاتصال */
+.conn-dot {
+  position: fixed;
+  top: 10px;
+  inset-inline-start: 10px;
+  z-index: 60;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, .25);
+  pointer-events: none;
+}
+
+.conn-dot.on { background: #22c55e; }
+.conn-dot.wait { background: #f59e0b; animation: tfmPulse 1.2s ease-in-out infinite; }
+.conn-dot.off { background: #e11d48; }
+
+@keyframes tfmPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .35; }
+}
+
+/* سحب ملف على الشاشة */
+#chat-screen.drop-active {
+  outline: 2px dashed var(--accent);
+  outline-offset: -12px;
+}
+
 /* ===== ستايل أحسن للمستخدمين ===== */
 
 /* الخطوط والمسافات */

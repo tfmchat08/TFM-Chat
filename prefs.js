@@ -77,7 +77,7 @@
 
   async function installApp() {
     if (isStandalone()) {
-      return alert(txt('التطبيق متثبت بالفعل', 'The app is already installed'));
+      return notify(txt('التطبيق متثبت بالفعل', 'The app is already installed'));
     }
     if (deferredPrompt) {
       deferredPrompt.prompt();
@@ -86,7 +86,7 @@
       return refreshLabels();
     }
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    alert(isIOS
+    notify(isIOS
       ? txt(
         'على آيفون: اضغط زرار المشاركة (Share) تحت، وبعدين اختار "Add to Home Screen".',
         'On iPhone: tap the Share button, then "Add to Home Screen".')
@@ -98,7 +98,7 @@
   // ---------- تصدير المحادثة (الرسايل المحمّلة في الشاشة) ----------
   function exportChat() {
     if (typeof msgById === 'undefined' || !msgById.size) {
-      return alert(txt('مفيش رسايل تتصدّر', 'No messages to export'));
+      return notify(txt('مفيش رسايل تتصدّر', 'No messages to export'), 'warn');
     }
     const rows = [...msgById.values()]
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))

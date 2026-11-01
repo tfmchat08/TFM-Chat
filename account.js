@@ -1,5 +1,5 @@
 // ---------- زرار حذف الحساب من الإعدادات ----------
-// بيستخدم sb و lang من app.js (لازم account.js يتحمّل بعد app.js)
+// بيستخدم sb و lang و openDialog و notify من app.js (لازم account.js يتحمّل بعد app.js)
 (() => {
   const btn = document.getElementById('set-delete');
   if (!btn) return;
@@ -13,31 +13,39 @@
   btn.onclick = async () => {
     document.getElementById('settings-modal').classList.add('hidden');
 
-    const typed = prompt(txt(
-      `ده هيمسح حسابك ورسايلك وبياناتك نهائياً ومش هيرجعوا.\nعشان تأكد، اكتب كلمة "${WORD}":`,
-      `This permanently deletes your account, messages and data.\nTo confirm, type "${WORD}":`
-    ));
+    // نافذة داخل المنصة بدل prompt الأصلي
+    const typed = await openDialog({
+      title: txt('حذف الحساب', 'Delete account'),
+      message: txt(
+        `ده هيمسح حسابك ورسايلك وبياناتك نهائياً ومش هيرجعوا.\nعشان تأكد، اكتب كلمة "${WORD}":`,
+        `This permanently deletes your account, messages and data.\nTo confirm, type "${WORD}":`
+      ),
+      input: { value: '', placeholder: WORD, max: 10 },
+      okText: txt('احذف حسابي', 'Delete my account'),
+      danger: true
+    });
     if (typed === null) return;
-    if (typed.trim() !== WORD) {
-      alert(txt('الكلمة مش مطابقة، حسابك لسه موجود.', 'Word does not match, your account is still there.'));
+    if (typed !== WORD) {
+      notify(txt('الكلمة مش مطابقة، حسابك لسه موجود.', 'Word does not match, your account is still there.'), 'warn');
       return;
     }
 
+    const failMsg = txt('حصلت مشكلة وحسابك ما اتحذفش. جرّب تاني.', 'Something went wrong, your account was not deleted. Try again.');
     try {
       const { data, error } = await sb.functions.invoke('delete-account', { body: {} });
       if (error || (data && data.error)) {
         if (data && data.error === 'admin') {
-          alert(txt('حساب الأدمن مينفعش يتحذف من هنا. اتكلم مع المسؤول الأول.', 'Admin accounts cannot be deleted from here.'));
+          notify(txt('حساب الأدمن مينفعش يتحذف من هنا. اتكلم مع المسؤول الأول.', 'Admin accounts cannot be deleted from here.'), 'error');
         } else {
-          alert(txt('حصلت مشكلة وحسابك ما اتحذفش. جرّب تاني.', 'Something went wrong, your account was not deleted. Try again.'));
+          notify(failMsg, 'error');
         }
         return;
       }
       try { await sb.auth.signOut(); } catch {}
-      alert(txt('حسابك اتحذف. تقدر تسجل حساب جديد في أي وقت.', 'Your account was deleted. You can sign up again anytime.'));
-      location.reload();
+      notify(txt('حسابك اتحذف. تقدر تسجل حساب جديد في أي وقت.', 'Your account was deleted. You can sign up again anytime.'), 'info');
+      setTimeout(() => location.reload(), 1200);
     } catch {
-      alert(txt('حصلت مشكلة وحسابك ما اتحذفش. جرّب تاني.', 'Something went wrong, your account was not deleted. Try again.'));
+      notify(failMsg, 'error');
     }
   };
 })();

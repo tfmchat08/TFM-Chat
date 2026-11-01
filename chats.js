@@ -51,7 +51,12 @@ function drawChatTabs(bar) {
     const pic = c.avatar_url
       ? `<img src="${esc(c.avatar_url)}" alt="">`
       : `<span class="chat-tab-init">${s}</span>`;
-    b.innerHTML = `${pic}<span>${esc(c.name)}</span>`;
+    // عداد الرسايل الجديدة على الشات اللي مش مفتوح
+    const unread = (window.unreadBySlot && window.unreadBySlot[s]) || 0;
+    const badge = unread && s !== currentChatSlot
+      ? `<b class="tab-badge">${unread > 99 ? '99+' : unread}</b>`
+      : '';
+    b.innerHTML = `${pic}<span>${esc(c.name)}</span>${badge}`;
     b.onclick = () => switchChat(s);
     bar.appendChild(b);
   }

@@ -760,6 +760,7 @@ async function enterChat(userId) {
   }
   $('avatar-gate').classList.add('hidden');
   showScreen('chat-screen');
+  maybeTour();
   await loadMessages();
   // تشتيت: كل جهاز يستنى عشوائي لحد 8 ثواني قبل الاشتراك، عشان الدخول الجماعي ما يضربش السيرفر مرة واحدة
   await new Promise(r => setTimeout(r, Math.random() * 8000));
@@ -1464,7 +1465,7 @@ function reactsHtml(id) {
   let html = '';
   map.forEach((users, emoji) => {
     const on = currentProfile && users.has(currentProfile.id);
-    html += `<button class="react-chip${on ? ' on' : ''}" data-rid="${id}" data-emoji="${esc(emoji)}">${esc(emoji)} ${users.size}</button>`;
+    html += `<button class="react-chip${on ? ' on' : ''}" data-rid="${id}" data-emoji="${esc(emoji)}" title="${esc(namesOf(users))}">${esc(emoji)} ${users.size}</button>`;
   });
   return html;
 }
@@ -1522,6 +1523,7 @@ function buildMessageEl(m) {
   div.dataset.id = m.id;
   div.dataset.uid = m.user_id;
   div.dataset.ts = new Date(m.created_at).getTime();
+  if (m.profiles?.display_name) userNames.set(m.user_id, m.profiles.display_name);
 
   const avatar = m.profiles?.avatar_url
     ? `<img class="msg-avatar" src="${esc(m.profiles.avatar_url)}" alt="" loading="lazy">`
@@ -1641,6 +1643,9 @@ async function loadMessages() {
   const seq = ++loadSeq;
   // هيكل تحميل بدل الشاشة الفاضية لحد ما الرسايل توصل
   if (!$('messages').children.length) showSkeleton();
+  // المسودة اللي كتبتها في الشات ده بترجع، وعداد الرسايل الجديدة فيه بيتصفّر
+  restoreDraft();
+  delete unreadBySlot[currentChatSlot];
   // الشاتات بترسم الأول، عشان تفضل ظاهرة حتى لو الرسايل فشلت
   if (window.renderChatTabs) window.renderChatTabs();
   if (window.loadBadges) await window.loadBadges();
@@ -1720,6 +1725,7 @@ async function sendMessage(fileUrl = null, fileType = null) {
   clearReply();
   sendTyping('stop');
   lastTypeSent = 0;
+  saveDraft();
   await pushMessage({ content: content || null, fileUrl, fileType, replyId });
 }
 
@@ -1792,19 +1798,8 @@ const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
 $('attach-btn').onclick = () => $('file-input').click();
 $('file-input').onchange = async () => {
   const file = $('file-input').files[0];
-  if (!file || !currentProfile) return;
-  if (file.size > MAX_UPLOAD_BYTES) {
-    notify(`الملف كبير. الحد الأقصى ${MAX_UPLOAD_MB} ميجا`, 'warn');
-    $('file-input').value = '';
-    return;
-  }
-  const safeName = file.name.replace(/[^\w.\-]/g, '_');
-  const path = `${currentProfile.id}/${Date.now()}_${safeName}`;
-  const { error } = await sb.storage.from('uploads').upload(path, file, { contentType: file.type });
-  if (error) return notify(t('uploadFail') + error.message, 'error');
-  const { data } = sb.storage.from('uploads').getPublicUrl(path);
-  await sendMessage(data.publicUrl, file.type);
   $('file-input').value = '';
+  await uploadFileAndSend(file);
 };
 
 // ---------- الكاميرا ----------
@@ -2348,6 +2343,13 @@ function subscribeToMessages() {
 
   msgChannel = sb.channel('messages-channel')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async payload => {
+      // رسالة في شات تاني غير المفتوح: بنزوّد عدّاده على التبويبة بس
+      if (payload.new.room === currentRoom() && payload.new.chat_slot !== currentChatSlot && payload.new.user_id !== currentProfile?.id) {
+        const s = payload.new.chat_slot;
+        unreadBySlot[s] = (unreadBySlot[s] || 0) + 1;
+        if (window.renderChatTabs) window.renderChatTabs();
+        return;
+      }
       // نعرض بس الرسايل اللي في الشعبة والمستوى اللي إحنا فيهم
       if (payload.new.room !== currentRoom() || payload.new.chat_slot !== currentChatSlot) return;
       const { data } = await sb.from('messages')
@@ -2390,9 +2392,11 @@ function subscribeToMessages() {
       if (token !== msgChanToken) return; // قناة قديمة
       if (status === 'SUBSCRIBED') {
         stopFallback();
+        setConn('on');
         return;
       }
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        setConn('wait');
         startFallback();
         subscribed = false;
         clearTimeout(resubTimer);
@@ -2698,6 +2702,242 @@ function setupKeyboardInset() {
   vv.addEventListener('scroll', onVV);
 }
 
+// ---------- تحسينات الاستخدام اليومي ----------
+const unreadBySlot = {};            // عدد الرسايل الجديدة في كل شات مش مفتوح
+window.unreadBySlot = unreadBySlot; // chats.js بيقرأه عشان يرسم العداد على التبويبة
+const userNames = new Map();        // أسماء الأعضاء عشان نعرض مين عمل الريأكت
+
+function namesOf(users) {
+  const me = lang === 'en' ? 'You' : 'أنت';
+  return [...users]
+    .map(id => (currentProfile && id === currentProfile.id) ? me : (userNames.get(id) || '?'))
+    .join(', ');
+}
+
+// نقطة حالة الاتصال: أخضر متصل، أصفر بيعيد الاتصال، أحمر أوف لاين
+function setConn(state) {
+  const d = $('conn-dot');
+  if (!d) return;
+  d.className = 'conn-dot ' + state;
+  const en = lang === 'en';
+  d.title = state === 'on' ? (en ? 'Connected' : 'متصل')
+    : state === 'wait' ? (en ? 'Reconnecting...' : 'بيعيد الاتصال...')
+      : (en ? 'Offline' : 'مفيش اتصال');
+}
+
+function setupConnDot() {
+  const d = document.createElement('span');
+  d.id = 'conn-dot';
+  d.className = 'conn-dot wait';
+  const h = document.querySelector('header');
+  if (h) h.appendChild(d);
+  window.addEventListener('offline', () => setConn('off'));
+  window.addEventListener('online', () => setConn(subscribed ? 'on' : 'wait'));
+}
+
+// المسودة لكل شات: اللي تكتبه بيفضل لما تغير الشات وترجع
+function draftKey() {
+  return `tfm-draft-${currentRoom()}-${currentChatSlot}`;
+}
+
+function saveDraft() {
+  try {
+    const v = $('msg-input').value;
+    if (v) localStorage.setItem(draftKey(), v);
+    else localStorage.removeItem(draftKey());
+  } catch {}
+}
+
+function restoreDraft() {
+  try { $('msg-input').value = localStorage.getItem(draftKey()) || ''; } catch {}
+}
+
+// ضغط الصورة قبل الرفع: بتتحول لـ JPEG بحد أقصى 1600 بكسل
+function compressImageBlob(file, maxW = 1600, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxW / img.width);
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(b => {
+        URL.revokeObjectURL(url);
+        if (b) resolve(b);
+        else reject(new Error('compress'));
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('image'));
+    };
+    img.src = url;
+  });
+}
+
+// الرفع والإرسال لأي ملف (من الزرار أو اللصق أو السحب)
+async function uploadFileAndSend(file) {
+  if (!file || !currentProfile || !canSend()) return;
+  let blob = file;
+  let type = file.type;
+  let name = file.name || 'file';
+  // الصور الكبيرة (أكتر من 800 كيلو) بتتضغط، والـ GIF بيفضل زي ما هو
+  if (type.startsWith('image/') && type !== 'image/gif' && file.size > 800 * 1024) {
+    try {
+      blob = await compressImageBlob(file);
+      type = 'image/jpeg';
+      name = name.replace(/\.[^.]+$/, '') + '.jpg';
+    } catch {
+      // لو الضغط فشل نرفع الأصلية
+    }
+  }
+  if (blob.size > MAX_UPLOAD_BYTES) {
+    return notify(`الملف كبير. الحد الأقصى ${MAX_UPLOAD_MB} ميجا`, 'warn');
+  }
+  const safeName = name.replace(/[^\w.\-]/g, '_');
+  const path = `${currentProfile.id}/${Date.now()}_${safeName}`;
+  const { error } = await sb.storage.from('uploads').upload(path, blob, { contentType: type });
+  if (error) return notify(t('uploadFail') + error.message, 'error');
+  const { data } = sb.storage.from('uploads').getPublicUrl(path);
+  await sendMessage(data.publicUrl, type);
+}
+
+// لصق الصورة من الكليبورد، وسحب الملف على الشاشة
+function setupPasteDrop() {
+  document.addEventListener('paste', e => {
+    if ($('chat-screen').classList.contains('hidden')) return;
+    const items = [...(e.clipboardData?.items || [])];
+    const img = items.find(i => i.kind === 'file' && i.type.startsWith('image/'));
+    if (!img) return;
+    e.preventDefault();
+    uploadFileAndSend(img.getAsFile());
+  });
+
+  const zone = $('chat-screen');
+  zone.addEventListener('dragover', e => {
+    if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) {
+      e.preventDefault();
+      zone.classList.add('drop-active');
+    }
+  });
+  zone.addEventListener('dragleave', e => {
+    if (e.target === zone) zone.classList.remove('drop-active');
+  });
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drop-active');
+    const f = e.dataTransfer && e.dataTransfer.files[0];
+    if (f) uploadFileAndSend(f);
+  });
+}
+
+// السحب لليمين على الرسالة = رد، والضغط المطوّل = قايمة الرسالة
+function setupGestures() {
+  const box = $('messages');
+  let sx = 0;
+  let sy = 0;
+  let lpTimer = null;
+  let moved = false;
+  let target = null;
+
+  box.addEventListener('touchstart', e => {
+    const msgEl = e.target.closest('.msg');
+    if (!msgEl || msgEl.classList.contains('pending')) return;
+    const p = e.touches[0];
+    sx = p.clientX;
+    sy = p.clientY;
+    moved = false;
+    target = msgEl;
+    lpTimer = setTimeout(() => {
+      if (moved || !target) return;
+      if (navigator.vibrate) navigator.vibrate(12);
+      const dots = target.querySelector('.dots');
+      const el = target;
+      target = null;
+      if (dots) openMenu(dots);
+      el.style.transform = '';
+    }, 500);
+  }, { passive: true });
+
+  box.addEventListener('touchmove', e => {
+    if (!target) return;
+    const p = e.touches[0];
+    const dx = p.clientX - sx;
+    const dy = p.clientY - sy;
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+      moved = true;
+      clearTimeout(lpTimer);
+    }
+    // سحب أفقي واضح: الرسالة بتتحرك مع الصباع
+    if (dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      target.style.transform = `translateX(${Math.min(dx, 90)}px)`;
+    }
+  }, { passive: true });
+
+  const end = e => {
+    clearTimeout(lpTimer);
+    if (!target) return;
+    const el = target;
+    target = null;
+    const p = e.changedTouches[0];
+    const dx = p.clientX - sx;
+    el.style.transform = '';
+    if (dx > 70) {
+      const m = msgById.get(Number(el.dataset.id));
+      if (m && canSend()) {
+        if (navigator.vibrate) navigator.vibrate(8);
+        setReply(m);
+      }
+    }
+  };
+  box.addEventListener('touchend', end);
+  box.addEventListener('touchcancel', end);
+}
+
+// اختصارات الكيبورد: Ctrl+K للبحث
+function setupShortcuts() {
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && !$('chat-screen').classList.contains('hidden')) {
+      e.preventDefault();
+      openSearch();
+    }
+  });
+}
+
+// جولة تعريفية مرة واحدة للمستخدم الجديد
+async function maybeTour() {
+  try {
+    if (localStorage.getItem('tfm_tour_v1')) return;
+    localStorage.setItem('tfm_tour_v1', '1');
+  } catch {
+    return;
+  }
+  const en = lang === 'en';
+  const steps = en ? [
+    ['Welcome to TFM Chat 👋', 'The platform is split into tracks and levels. Pick yours from the top, and each one has five chats.'],
+    ['Reply and react', 'Swipe a message to the right to reply, or long-press it. Tap an emoji to react.'],
+    ['Files and images', 'You can paste an image from your clipboard or drag a file onto the screen. Big images get compressed before sending.'],
+    ['Shortcuts', 'Ctrl+K opens search. Whatever you type but do not send is kept when you switch chats.']
+  ] : [
+    ['أهلاً بيك في TFM Chat 👋', 'المنصة مقسمة لشعب ومستويات. اختار شعبتك من فوق، وكل شعبة فيها خمس شاتات.'],
+    ['الرد والتفاعل', 'اسحب الرسالة لليمين عشان ترد عليها، أو اضغط عليها مطوّل. واضغط على الإيموجي عشان تتفاعل.'],
+    ['الملفات والصور', 'تقدر تلصق صورة من الكليبورد أو تسحب ملف على الشاشة. والصور الكبيرة بتتضغط قبل ما تتبعت.'],
+    ['اختصارات', 'Ctrl+K بيفتح البحث. واللي بتكتبه ومتبعتوش بيفضل محفوظ لو غيرت الشات.']
+  ];
+  for (let i = 0; i < steps.length; i++) {
+    const last = i === steps.length - 1;
+    const ok = await openDialog({
+      title: steps[i][0],
+      message: steps[i][1],
+      okText: last ? (en ? 'Start' : 'ابدأ') : (en ? 'Next' : 'التالي'),
+      cancelText: en ? 'Skip' : 'تخطي'
+    });
+    if (ok !== true) break;
+  }
+}
+
 // ---------- بدء التطبيق ----------
 applyRoomUI();
 applyBg();
@@ -2707,3 +2947,8 @@ setupJump();
 setupAria();
 setupModalFocus();
 setupKeyboardInset();
+setupPasteDrop();
+setupGestures();
+setupConnDot();
+setupShortcuts();
+$('msg-input').addEventListener('input', saveDraft);
