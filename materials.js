@@ -61,7 +61,7 @@
       row.className = 'mat-row';
 
       const a = document.createElement('a');
-      a.href = f.file_url;
+      a.href = safeUrl(f.file_url) || '#';
       a.target = '_blank';
       a.rel = 'noopener';
       a.className = 'mat-link';
@@ -249,7 +249,7 @@
         const st = document.createElement('small');
         st.className = 'sub-status';
         st.innerHTML = mySub
-          ? `✅ سلّمت: <a href="${esc2(mySub.file_url)}" target="_blank" rel="noopener">${esc2(mySub.file_name)}</a>`
+          ? `✅ سلّمت: <a href="${esc2(safeUrl(mySub.file_url))}" target="_blank" rel="noopener">${esc2(mySub.file_name)}</a>`
           : 'لسه ماسلّمتش';
         info.appendChild(st);
 
@@ -327,7 +327,7 @@
       const info = document.createElement('div');
       info.className = 'mat-link';
       info.innerHTML = `<b>${esc2((s.profiles && s.profiles.display_name) || '?')}</b>`
-        + `<br><a href="${esc2(s.file_url)}" target="_blank" rel="noopener">📄 ${esc2(s.file_name)}</a>`
+        + `<br><a href="${esc2(safeUrl(s.file_url))}" target="_blank" rel="noopener">📄 ${esc2(s.file_name)}</a>`
         + `<br><small>${esc2(fmtDue(s.submitted_at))}</small>`;
       box.appendChild(info);
 

@@ -1,0 +1,603 @@
+/* ===== ux-modern-v3.css: ثيم أسود/أبيض + ديزاين حديث + أنيميشن =====
+   بيتحمّل بعد modern2.css. بيعدّل الشكل بس. */
+
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;600;700&display=swap');
+
+/* ---------- توكنز ثابتة ---------- */
+:root {
+  --ux-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ux-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ux-radius-sm: 12px;
+}
+
+/* ---------- الوضع الليلي: أسود ---------- */
+:root:not([data-theme="light"]) {
+  color-scheme: dark;
+  --bg1: #000000;
+  --bg2: #000000;
+  --bg3: #000000;
+  --page: #000000;
+  --card-a: #111113;
+  --card-b: #0b0b0d;
+  --card-c: #09090b;
+  --accent: #e11d48;
+  --accent2: #f43f5e;
+  --text: #f4f4f5;
+  --muted: #a1a1aa;
+  --border: rgba(255, 255, 255, 0.09);
+  --bubble: #141416;
+  --bubble-edge: #1f1f23;
+  --bubble-mine-a: #e11d48;
+  --bubble-mine-b: #9f1239;
+  --input-bg: #0f0f12;
+  --panel: #0c0c0e;
+  --header: rgba(0, 0, 0, 0.72);
+  --ghost: #17171b;
+  --link: #fda4af;
+  --chat-bg: #000000;
+  --ux-glass: rgba(255, 255, 255, 0.05);
+  --ux-glass-hi: rgba(255, 255, 255, 0.1);
+  --ux-glass-border: rgba(255, 255, 255, 0.09);
+  --ux-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  --ux-glow: 0 10px 28px rgba(225, 29, 72, 0.35);
+  --ux-grad: linear-gradient(120deg, #e11d48, #f43f5e, #fb7185, #e11d48);
+  --ux-modal: rgba(0, 0, 0, 0.7);
+}
+
+/* ---------- الوضع النهاري: أبيض ---------- */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg1: #ffffff;
+  --bg2: #fafafa;
+  --bg3: #f4f4f5;
+  --page: #fafafa;
+  --card-a: #ffffff;
+  --card-b: #ffffff;
+  --card-c: #fafafa;
+  --accent: #e11d48;
+  --accent2: #f43f5e;
+  --text: #18181b;
+  --muted: #71717a;
+  --border: rgba(0, 0, 0, 0.08);
+  --bubble: #ffffff;
+  --bubble-edge: #e4e4e7;
+  --bubble-mine-a: #e11d48;
+  --bubble-mine-b: #be123c;
+  --input-bg: #ffffff;
+  --panel: #ffffff;
+  --header: rgba(255, 255, 255, 0.85);
+  --ghost: #f4f4f5;
+  --link: #be123c;
+  --chat-bg: #ffffff;
+  --ux-glass: rgba(255, 255, 255, 0.75);
+  --ux-glass-hi: #ffffff;
+  --ux-glass-border: rgba(0, 0, 0, 0.08);
+  --ux-shadow: 0 18px 50px rgba(24, 24, 27, 0.12);
+  --ux-glow: 0 10px 26px rgba(225, 29, 72, 0.28);
+  --ux-grad: linear-gradient(120deg, #e11d48, #f43f5e, #fb7185, #e11d48);
+  --ux-modal: rgba(255, 255, 255, 0.6);
+}
+
+/* ---------- الخلفية والخط ---------- */
+html,
+body {
+  font-family: 'Cairo', 'Inter', Tahoma, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:root:not([data-theme="light"]) body {
+  background:
+    radial-gradient(900px 500px at 50% -12%, rgba(225, 29, 72, 0.12), transparent 60%),
+    #000000;
+  background-attachment: fixed;
+  animation: none;
+}
+
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(900px 500px at 50% -12%, rgba(225, 29, 72, 0.07), transparent 60%),
+    #ffffff;
+  background-attachment: fixed;
+  animation: none;
+}
+
+/* حبيبات خفيفة فوق الخلفية (grain) */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9000;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+:root[data-theme="light"] body::after {
+  opacity: 0.025;
+}
+
+::selection {
+  background: rgba(225, 29, 72, 0.4);
+  color: #fff;
+}
+
+h1 { font-weight: 800; letter-spacing: -0.3px; }
+h2 { font-weight: 700; }
+h3 { font-weight: 700; }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(225, 29, 72, 0.4) transparent;
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: rgba(225, 29, 72, 0.4); border-radius: 999px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- كيفرياتس ---------- */
+@keyframes uxRise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes uxPop {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes uxFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes uxMsgIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes uxGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes uxBreath {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.35), var(--ux-shadow); }
+  50% { box-shadow: 0 0 0 12px rgba(225, 29, 72, 0), var(--ux-shadow); }
+}
+@keyframes uxRipple {
+  to { transform: scale(2.8); opacity: 0; }
+}
+
+/* ---------- الشاشات والكروت ---------- */
+.screen:not(.hidden) .card,
+.screen:not(.hidden) .auth-credits {
+  animation: uxRise 0.6s var(--ux-ease) both;
+}
+.screen:not(.hidden) .auth-credits { animation-delay: 0.15s; }
+
+.card {
+  border-radius: 28px;
+  border: 1px solid var(--ux-glass-border);
+  box-shadow: var(--ux-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.logo {
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  animation: uxPop 0.7s var(--ux-spring) both, uxBreath 3.5s ease-in-out infinite;
+}
+
+/* المودالات */
+.modal {
+  background: var(--ux-modal);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.modal:not(.hidden) { animation: uxFade 0.22s ease both; }
+
+.modal-box {
+  border-radius: 26px;
+  border: 1px solid var(--ux-glass-border);
+  background: var(--card-a);
+  box-shadow: var(--ux-shadow);
+  animation: uxPop 0.34s var(--ux-spring) both;
+}
+
+/* ---------- الهيدر ---------- */
+header {
+  position: relative;
+  background: var(--header);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border-bottom: 1px solid transparent;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--ux-grad);
+  background-size: 300% 100%;
+  animation: uxGradient 8s linear infinite;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.avatar {
+  border: 2px solid var(--ux-glass-border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- الأزرار ---------- */
+button {
+  font-family: inherit;
+  border-radius: var(--ux-radius-sm);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.22s var(--ux-spring), box-shadow 0.3s var(--ux-ease),
+    background 0.25s ease, border-color 0.25s ease, filter 0.25s ease, color 0.25s ease;
+}
+
+button:active {
+  transform: scale(0.95);
+  transition-duration: 0.08s;
+}
+
+button.primary {
+  background: var(--ux-grad);
+  background-size: 250% 100%;
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  box-shadow: var(--ux-glow);
+  animation: uxGradient 6s linear infinite;
+}
+
+button.primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.75s var(--ux-ease);
+  pointer-events: none;
+}
+
+button.primary:hover::after { transform: translateX(120%); }
+
+button.primary:hover {
+  box-shadow: 0 14px 36px rgba(225, 29, 72, 0.5);
+  transform: translateY(-2px);
+}
+
+button.primary:disabled {
+  animation: none;
+  background: var(--ghost);
+  color: var(--muted);
+  box-shadow: none;
+}
+
+button.ghost {
+  background: var(--ux-glass);
+  border: 1px solid var(--ux-glass-border);
+  color: var(--text);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+button.ghost:hover {
+  background: var(--ux-glass-hi);
+  border-color: rgba(225, 29, 72, 0.45);
+  transform: translateY(-1px);
+}
+
+button.danger-btn {
+  background: rgba(225, 29, 72, 0.12);
+  border: 1px solid rgba(225, 29, 72, 0.35);
+  color: #fb7185;
+}
+
+button.danger-btn:hover {
+  background: rgba(225, 29, 72, 0.22);
+  box-shadow: 0 8px 22px rgba(225, 29, 72, 0.25);
+}
+
+:root[data-theme="light"] button.danger-btn {
+  color: #be123c;
+}
+
+.google-btn {
+  border-radius: 16px;
+  background: #ffffff;
+  color: #18181b;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+}
+
+.google-btn:hover {
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+/* أزرار اللغة والوضع */
+.auth-prefs button,
+.auth-prefs .ghost {
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.auth-tabs {
+  background: var(--ux-glass);
+  border: 1px solid var(--ux-glass-border);
+  border-radius: 18px;
+  padding: 5px;
+}
+
+.auth-tab {
+  border-radius: 14px;
+  font-weight: 700;
+}
+
+.auth-tab.active { box-shadow: var(--ux-glow); }
+
+/* ---------- الحقول ---------- */
+input:not([type="radio"]):not([type="checkbox"]):not([type="file"]),
+select,
+textarea {
+  background: var(--input-bg);
+  color: var(--text);
+  border-radius: 16px;
+  border: 1px solid var(--ux-glass-border);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, transform 0.25s var(--ux-ease);
+}
+
+input:not([type="radio"]):not([type="checkbox"]):not([type="file"]):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.22);
+  transform: translateY(-1px);
+}
+
+::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+/* أشرطة الكتابة والبحث والرد */
+.composer,
+.search-bar,
+.reply-bar,
+.pinned-bar,
+.typing-bar,
+.ai-composer {
+  background: var(--header);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--ux-glass-border);
+}
+
+/* ---------- الشاتات ---------- */
+.chat-tabs { gap: 8px; }
+
+.chat-tab {
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 700;
+  border: 1px solid var(--ux-glass-border);
+  background: var(--ux-glass);
+  color: var(--text);
+  transition: transform 0.25s var(--ux-spring), box-shadow 0.3s var(--ux-ease), background 0.25s ease;
+}
+
+.chat-tab:hover {
+  transform: translateY(-2px);
+  border-color: rgba(225, 29, 72, 0.45);
+}
+
+.chat-tab.active {
+  border-color: transparent;
+  background: var(--ux-grad);
+  background-size: 250% 100%;
+  color: #fff;
+  box-shadow: var(--ux-glow);
+  animation: uxGradient 6s linear infinite;
+}
+
+.msg {
+  border-radius: 18px;
+  border: 1px solid var(--bubble-edge);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  animation: uxMsgIn 0.35s var(--ux-ease) both;
+}
+
+.msg.mine {
+  background: linear-gradient(135deg, var(--bubble-mine-a), var(--bubble-mine-b));
+  border-color: transparent;
+  box-shadow: 0 8px 22px rgba(225, 29, 72, 0.25);
+}
+
+#messages { scroll-behavior: smooth; }
+
+/* ---------- قايمة الإعدادات ---------- */
+.set-list > * {
+  animation: uxRise 0.4s var(--ux-ease) both;
+}
+.set-list > *:nth-child(1) { animation-delay: 0.02s; }
+.set-list > *:nth-child(2) { animation-delay: 0.05s; }
+.set-list > *:nth-child(3) { animation-delay: 0.08s; }
+.set-list > *:nth-child(4) { animation-delay: 0.11s; }
+.set-list > *:nth-child(5) { animation-delay: 0.14s; }
+.set-list > *:nth-child(6) { animation-delay: 0.17s; }
+.set-list > *:nth-child(7) { animation-delay: 0.2s; }
+.set-list > *:nth-child(8) { animation-delay: 0.23s; }
+.set-list > *:nth-child(9) { animation-delay: 0.26s; }
+.set-list > *:nth-child(10) { animation-delay: 0.29s; }
+.set-list > *:nth-child(n+11) { animation-delay: 0.32s; }
+
+.set-item {
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-size: 16px;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  color: var(--text);
+  transition: transform 0.25s var(--ux-spring), background 0.2s ease, border-color 0.2s ease;
+}
+
+.set-item:hover {
+  background: var(--ux-glass);
+  border-color: var(--ux-glass-border);
+  transform: translateX(-4px);
+}
+
+/* ---------- شات فهيم ---------- */
+.ai-chip {
+  color: var(--text);
+  background: var(--ux-glass);
+  border: 1px solid var(--ux-glass-border);
+  border-radius: 18px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: start;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: uxRise 0.4s var(--ux-ease) both;
+}
+
+.ai-chip:hover {
+  background: rgba(225, 29, 72, 0.14);
+  border-color: rgba(225, 29, 72, 0.45);
+  transform: translateY(-2px);
+}
+
+.ai-msg {
+  border-radius: 20px;
+  animation: uxMsgIn 0.35s var(--ux-ease) both;
+}
+
+/* ---------- الاختبارات ---------- */
+.fab {
+  border-radius: 50%;
+  box-shadow: var(--ux-glow);
+  animation: uxPop 0.5s var(--ux-spring) both;
+}
+
+[data-level],
+[data-track] {
+  color: var(--text);
+  background: var(--ux-glass);
+  border: 1px solid var(--ux-glass-border);
+  border-radius: 14px;
+  transition: transform 0.25s var(--ux-spring), background 0.25s ease, box-shadow 0.25s ease;
+}
+
+[data-level]:hover,
+[data-track]:hover {
+  transform: translateY(-1px);
+  border-color: rgba(225, 29, 72, 0.45);
+}
+
+[data-level][aria-pressed="true"],
+[data-track][aria-pressed="true"],
+[data-level].on,
+[data-track].on {
+  background: var(--ux-grad);
+  background-size: 250% 100%;
+  animation: uxGradient 6s linear infinite;
+  color: #fff;
+  border-color: transparent;
+  box-shadow: var(--ux-glow);
+}
+
+a.back,
+.back {
+  color: var(--text);
+  background: var(--ux-glass);
+  border: 1px solid var(--ux-glass-border);
+  border-radius: 14px;
+  padding: 8px 12px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.2s ease, transform 0.25s var(--ux-spring);
+}
+
+a.back:hover,
+.back:hover {
+  background: var(--ux-glass-hi);
+  transform: translateX(3px);
+}
+
+h1,
+h2 {
+  color: var(--text);
+}
+
+/* ---------- تأثير الضغط (Ripple) ---------- */
+.ux-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(0);
+  animation: uxRipple 0.6s ease-out forwards;
+  pointer-events: none;
+}
+
+/* ---------- تركيز الكيبورد ---------- */
+:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+/* ---------- الماوس والمس ---------- */
+@media (hover: none) {
+  button:hover,
+  button.ghost:hover,
+  button.primary:hover {
+    filter: none;
+    transform: none;
+  }
+
+  .chat-tab:hover,
+  .set-item:hover,
+  .ai-chip:hover,
+  .msg:hover,
+  [data-level]:hover,
+  [data-track]:hover,
+  a.back:hover,
+  .back:hover {
+    transform: none;
+  }
+}
+
+@media (pointer: coarse) {
+  button,
+  .chat-tab,
+  .gear,
+  a.back,
+  .set-item {
+    min-height: 44px;
+  }
+
+  .gear {
+    min-width: 44px;
+  }
+}
+
+/* ---------- تقليل الحركة: نوقف كل الأنيميشن ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

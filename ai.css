@@ -56,7 +56,7 @@
   flex: 0 0 44px;
   border-radius: 50%;
   overflow: hidden;
-  background: #0b0f2a;
+  background: var(--card-a, #0b0f2a);
   border: 2px solid var(--link);
 }
 .ai-avatar img {

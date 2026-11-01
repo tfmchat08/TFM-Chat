@@ -39,7 +39,7 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const colors = ['#6e0819', '#e0a526', '#1e7b43', '#2d6cdf', '#d9534f', '#8e44ad'];
+    const colors = ['#e11d48', '#fb7185', '#f59e0b', '#22d3ee', '#a3e635', '#c084fc']; // ألوان واضحة على الأسود والأبيض
     const n = count || 120;
     const parts = Array.from({ length: n }, () => ({
       x: window.innerWidth / 2 + (Math.random() - 0.5) * 120,

@@ -823,7 +823,7 @@ $('ai-speak').onclick = () => {
 
 $('ai-send').onclick = () => aiSend(false);
 $('ai-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') aiSend(false);
+  if (e.key === 'Enter' && !e.isComposing) aiSend(false);
 });
 
 // ---------- إعدادات فهيم ----------
@@ -860,17 +860,17 @@ sb.auth.onAuthStateChange((event, session) => {
   const st = document.createElement('style');
   st.textContent = `
     .ai-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
-    .ai-actions button { border: 1px solid #6e0819; background: transparent; color: #6e0819; border-radius: 12px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
-    .ai-actions button:active { background: #6e0819; color: #fff; }
+    .ai-actions button { border: 1px solid var(--accent); background: transparent; color: var(--accent); border-radius: 12px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
+    .ai-actions button:active { background: var(--accent); color: #fff; }
     .ai-suggest { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 12px; }
-    .ai-chip { border: 1px solid #6e0819; background: transparent; color: #6e0819; border-radius: 16px; padding: 7px 12px; font-size: 14px; cursor: pointer; text-align: start; }
-    .ai-chip:active { background: #6e0819; color: #fff; }
+    .ai-chip { border: 1px solid var(--accent); background: transparent; color: var(--accent); border-radius: 16px; padding: 7px 12px; font-size: 14px; cursor: pointer; text-align: start; }
+    .ai-chip:active { background: var(--accent); color: #fff; }
     .ai-status { font-size: 13px; padding: 6px 14px; text-align: center; }
-    .ai-status.listen { color: #6e0819; font-weight: bold; }
+    .ai-status.listen { color: var(--accent); font-weight: bold; }
     .ai-status.think { opacity: .75; }
     .ai-status.speak { cursor: pointer; text-decoration: underline; }
-    .ai-status.error { color: #c0392b; }
-    #ai-mic.mic-on { color: #c0392b; animation: aiPulse 1.2s infinite; }
+    .ai-status.error { color: #e11d48; }
+    #ai-mic.mic-on { color: #e11d48; animation: aiPulse 1.2s infinite; }
     @keyframes aiPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
   `;
   document.head.appendChild(st);

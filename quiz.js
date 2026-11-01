@@ -30,6 +30,7 @@ let myId = null;
 let editingId = null;        // سؤال بيتعدّل
 let editingExamId = null;    // امتحان بيتعدّل
 let editingExamStatus = null;
+let pendingExam = null;     // امتحان اتحفظ بس ما اتنزلش في الشات: نعيد النشر بدل ما نعمل نسخة تانية
 
 // ---------- أدوات صغيرة ----------
 function el(tag, cls) {
@@ -350,7 +351,7 @@ async function renderExamList() {
     const title = el('div', 'bank-q');
     title.textContent = '📝 ' + ex.title;
     const meta = el('div', 'exam-meta');
-    meta.textContent = `${roomLabel(ex.room)} · ${ex.question_ids.length} ${txt('سؤال', 'questions')} · ${new Date(ex.created_at).toLocaleString(isEn ? 'en-GB' : 'ar-EG')}`;
+    meta.textContent = `${roomLabel(ex.room)} · ${(ex.question_ids || []).length} ${txt('سؤال', 'questions')} · ${new Date(ex.created_at).toLocaleString(isEn ? 'en-GB' : 'ar-EG')}`;
     const open = btn(txt('📊 درجات الطلبة', '📊 Student grades'));
     open.onclick = () => renderResults(ex);
     div.appendChild(title); div.appendChild(meta); div.appendChild(open);
@@ -521,6 +522,22 @@ async function postExamToChat(exam, slot) {
 
 // نشر: بنحفظ الأسئلة في بنك الشعبة، وبنعمل الامتحان بيها، وبننزله في الشات
 async function publishExam() {
+  // لو فيه امتحان اتحفظ قبل كده وفشل نزوله في الشات، بنعيد النزول بس
+  if (pendingExam) {
+    const p = pendingExam;
+    $('publish').disabled = true;
+    try {
+      if (await postExamToChat(p.exam, p.slot)) {
+        pendingExam = null;
+        alert(txt(`اتنشر في ${slotName(p.slot)}`, `Published to ${slotName(p.slot)}`));
+        closeSheet();
+        if (isAdmin && !$('history-box').hidden) await loadHistory();
+      }
+    } finally {
+      $('publish').disabled = false;
+    }
+    return;
+  }
   const title = $('exam-title').value.trim();
   if (!title) return alert(txt('اكتب اسم الاختبار', 'Write the quiz name'));
   const qs = readQuestions();
@@ -550,7 +567,7 @@ async function publishExam() {
       return alert(eErr.message);
     }
 
-    if (!(await postExamToChat(exam, slot))) return;
+    if (!(await postExamToChat(exam, slot))) { pendingExam = { exam, slot }; return; }
     alert(txt(`اتنشر في ${slotName(slot)}`, `Published to ${slotName(slot)}`));
     closeSheet();
     if (isAdmin && !$('history-box').hidden) await loadHistory();
@@ -592,7 +609,7 @@ async function loadHistory() {
     title.appendChild(pill);
 
     const meta = el('div', 'exam-meta');
-    meta.textContent = `${roomLabel(ex.room)} · ${ex.question_ids.length} ${txt('سؤال', 'questions')} · ${new Date(ex.created_at).toLocaleString(isEn ? 'en-GB' : 'ar-EG')}`;
+    meta.textContent = `${roomLabel(ex.room)} · ${(ex.question_ids || []).length} ${txt('سؤال', 'questions')} · ${new Date(ex.created_at).toLocaleString(isEn ? 'en-GB' : 'ar-EG')}`;
 
     const btns = el('div', 'row-btns');
     const preview = btn(txt('👁️ معاينة', '👁️ Preview'));

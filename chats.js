@@ -73,7 +73,7 @@ async function addChat() {
   if (count >= CHATS_MAX) return alert(`الحد الأقصى ${CHATS_MAX} شاتات في الشعبة`);
 
   const slot = count + 1;
-  const name = (prompt('اسم الشات الجديد:', 'شات ' + slot) || '').trim().slice(0, 30);
+  const name = ((await askText('اسم الشات الجديد:', 'شات ' + slot, { max: 30 })) || '').trim().slice(0, 30);
   if (!name) return;
 
   const { error } = await sb.from('chats').insert({
@@ -89,16 +89,32 @@ async function addChat() {
   }
 }
 
-window.renderChatTabs = async function () {
-  const bar = chatBar();
-  // نرسمهم فوراً بالأسماء الافتراضية، وبعدين نحدّثهم بالأسماء من السيرفر
-  drawChatTabs(bar);
-  try {
-    await loadChatsInfo();
-  } catch {
-    chatsInfo = [];
+// حارس: لو الدالة اتنادت وهي شغالة، بنستنى الجولة الحالية ونعمل جولة واحدة إضافية بدل ما الاستجابات تتلخبط
+let tabsRefreshing = null;
+let tabsQueued = false;
+
+window.renderChatTabs = function () {
+  if (tabsRefreshing) {
+    tabsQueued = true;
+    return tabsRefreshing;
   }
-  drawChatTabs(bar);
+  tabsRefreshing = (async () => {
+    do {
+      tabsQueued = false;
+      const bar = chatBar();
+      // نرسمهم فوراً بالأسماء الافتراضية، وبعدين نحدّثهم بالأسماء من السيرفر
+      drawChatTabs(bar);
+      try {
+        await loadChatsInfo();
+      } catch {
+        chatsInfo = [];
+      }
+      drawChatTabs(bar);
+    } while (tabsQueued);
+  })().finally(() => {
+    tabsRefreshing = null;
+  });
+  return tabsRefreshing;
 };
 
 // زرار "التواصل والشكاوي" في الإعدادات: بيفتح نفس النافذة اللي من برا بالظبط
@@ -235,7 +251,7 @@ async function renderChatAdminRows() {
 // حذف آخر شات إضافي بس (مش الخمسة الأساسيين، ومش شات في النص عشان الترقيم ما يتقطعش)
 async function deleteLastChat(slot) {
   if (slot <= CHATS_DEFAULT || slot !== chatCount()) return;
-  if (!confirm(`تمسح الشات ${slot} وكل رسايله؟ الحركة دي مش بترجع.`)) return;
+  if (!(await askConfirm(`تمسح الشات ${slot} وكل رسايله؟ الحركة دي مش بترجع.`, { danger: true, okText: lang === 'en' ? 'Delete' : 'حذف' }))) return;
 
   // بنمسح الشات الأول، عشان لو الصلاحية مقفولة ما نمسحش الرسايل من غير الشات
   const { data, error } = await sb.from('chats')
@@ -262,26 +278,31 @@ async function deleteLastChat(slot) {
 }
 
 async function saveChatRow(slot, nameInput, fileInput, btn) {
-  const patch = { name: nameInput.value.trim() || ('شات ' + slot) };
-  const f = fileInput.files[0];
+  // الزرار بيتقفل من أول الحفظ لحد ما ينتهي (سواء فيه صورة أو لأ)، عشان ما يتكبسش مرتين
+  if (btn.disabled) return;
+  btn.disabled = true;
+  try {
+    const patch = { name: nameInput.value.trim() || ('شات ' + slot) };
+    const f = fileInput.files[0];
 
-  if (f) {
-    if (f.size > 2 * 1024 * 1024) return alert('الصورة كبيرة. الحد الأقصى 2 ميجا');
-    btn.disabled = true;
-    const path = `${currentProfile.id}/chat_${currentRoom()}_${slot}_${Date.now()}`;
-    const { error: upErr } = await sb.storage.from('uploads').upload(path, f, { contentType: f.type });
+    if (f) {
+      if (f.size > 2 * 1024 * 1024) return alert('الصورة كبيرة. الحد الأقصى 2 ميجا');
+      const path = `${currentProfile.id}/chat_${currentRoom()}_${slot}_${Date.now()}`;
+      const { error: upErr } = await sb.storage.from('uploads').upload(path, f, { contentType: f.type });
+      if (upErr) return alert(upErr.message);
+      patch.avatar_url = sb.storage.from('uploads').getPublicUrl(path).data.publicUrl;
+    }
+
+    const { error } = await sb.from('chats')
+      .update(patch)
+      .eq('room', currentRoom())
+      .eq('slot', slot);
+    if (error) return alert(error.message);
+
+    fileInput.value = '';
+    await window.renderChatTabs();
+    await renderChatAdminRows();
+  } finally {
     btn.disabled = false;
-    if (upErr) return alert(upErr.message);
-    patch.avatar_url = sb.storage.from('uploads').getPublicUrl(path).data.publicUrl;
   }
-
-  const { error } = await sb.from('chats')
-    .update(patch)
-    .eq('room', currentRoom())
-    .eq('slot', slot);
-  if (error) return alert(error.message);
-
-  fileInput.value = '';
-  await window.renderChatTabs();
-  await renderChatAdminRows();
 }
