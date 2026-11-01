@@ -1600,11 +1600,47 @@ $('file-input').onchange = async () => {
 };
 
 // ---------- الكاميرا ----------
+let camFacing = 'user';   // user = الأمامية، environment = الخلفية
+
+// بيشغّل الكاميرا المطلوبة (وبيقفل اللي كانت شغالة)
+async function startCamera() {
+  if (camStream) camStream.getTracks().forEach(tr => tr.stop());
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: camFacing } } });
+  } catch (e) {
+    camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+  }
+  $('cam-video').srcObject = camStream;
+}
+
+// زرار قلب الكاميرا: بيظهر بس لو في أكتر من كاميرا في الجهاز
+async function updateFlipBtn() {
+  let flip = $('cam-flip');
+  if (!flip) {
+    flip = document.createElement('button');
+    flip.id = 'cam-flip';
+    flip.type = 'button';
+    flip.className = 'ghost';
+    flip.onclick = async () => {
+      flip.disabled = true;
+      camFacing = camFacing === 'user' ? 'environment' : 'user';
+      try { await startCamera(); } catch (err) { alert(t('camFail') + err.message); }
+      flip.disabled = false;
+    };
+    $('cam-snap').insertAdjacentElement('beforebegin', flip);
+  }
+  flip.textContent = lang === 'en' ? '🔄 Flip camera' : '🔄 اقلب الكاميرا';
+  try {
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    flip.style.display = devs.filter(d => d.kind === 'videoinput').length > 1 ? '' : 'none';
+  } catch (e) { /* نسيبه ظاهر */ }
+}
+
 async function openCamera() {
   try {
-    camStream = await navigator.mediaDevices.getUserMedia({ video: true });
-    $('cam-video').srcObject = camStream;
+    await startCamera();
     $('cam-modal').classList.remove('hidden');
+    updateFlipBtn();
   } catch (err) {
     alert(t('camFail') + err.message);
   }
