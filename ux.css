@@ -1,0 +1,83 @@
+/* ===== ux.css: تحسينات الواجهة (تتحمّل بعد modern2.css) ===== */
+
+/* 1) اقتراحات الشات */
+.ai-chip {
+  color: var(--text);
+  background: rgba(110, 8, 25, 0.45);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: start;
+}
+.ai-chip:hover { background: rgba(196, 40, 63, 0.35); }
+
+/* 2) خلفية الشات (الداكن بس) */
+:root:not([data-theme="light"]) {
+  --chat-bg: #120308;
+  --bubble: #4a0816;
+}
+
+/* 3) تقليل الحركة */
+@media (prefers-reduced-motion: reduce) {
+  body, .logo, .msg, .avatar, .chat-tab, .set-item, .member-row {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* 4) الموبايل: ما يفضلش الـ hover لازق بعد اللمس */
+@media (hover: none) {
+  button:hover { filter: none; }
+  .chat-tab:hover, .avatar:hover, .member-avatar:hover,
+  .msg:hover, .member-row:hover, .set-item:hover {
+    transform: none; box-shadow: none; background: none;
+  }
+}
+
+/* 5) مناطق اللمس 44px */
+@media (pointer: coarse) {
+  button, .chat-tab, .gear, a.back, .set-item { min-height: 44px; }
+  .gear { min-width: 44px; }
+}
+
+/* 6) خط أكبر في الإعدادات والحقول */
+.set-item { font-size: 16px; }
+input, select, textarea { font-size: 16px; }
+::placeholder { color: var(--muted); opacity: 0.75; }
+
+/* 7) العناوين الرئيسية */
+h1, h2 { color: var(--text); }
+
+/* 8) أزرار المرحلة/اللغة والرجوع */
+[data-level], [data-track] {
+  color: var(--text);
+  background: var(--ghost);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+[data-level][aria-pressed="true"], [data-track][aria-pressed="true"],
+[data-level].on, [data-track].on {
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  color: #fff;
+  border-color: transparent;
+}
+a.back, .back {
+  color: var(--text);
+  background: var(--ghost);
+  border-radius: 12px;
+  padding: 8px 12px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 9) blur أخف */
+.card, header, .modal-box {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* 10) focus واضح */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
