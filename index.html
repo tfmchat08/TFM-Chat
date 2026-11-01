@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="chats.css?v=1">
   <link rel="stylesheet" href="modern2.css?v=16">
   <link rel="stylesheet" href="ux-modern-v3.css?v=1">
-  <link rel="stylesheet" href="ux-polish.css?v=3">
+  <link rel="stylesheet" href="ux-polish.css?v=4">
   <link rel="stylesheet" href="fx.css?v=1">
 </head>
 <body>
@@ -43,10 +43,7 @@
       </div>
       <img src="icon-512.png" alt="TFM" class="logo">
       <h1>TFM Chat</h1>
-      <div class="auth-tabs">
-        <button class="auth-tab active" data-mode="login" data-i18n="login">دخول</button>
-        <button class="auth-tab" data-mode="signup" data-i18n="signup">حساب جديد</button>
-      </div>
+      <h2 id="auth-title" class="auth-title" data-i18n="login">تسجيل دخول</h2>
 
       <div class="room-picker">
         <div>
@@ -79,6 +76,8 @@
       <button id="auth-submit" class="primary"></button>
       <button id="google-btn" class="google-btn" type="button" data-i18n="google"></button>
       <button id="forgot-btn" class="link-btn" data-i18n="forgot"></button>
+      <button id="to-signup" class="link-btn" type="button">لا تمتلك حساب؟ إنشاء حساب جديد</button>
+      <button id="to-login" class="link-btn hidden" type="button">عندك حساب بالفعل؟ تسجيل الدخول</button>
       <button id="contact-open" class="ghost" data-i18n="contact"></button>
       <p id="auth-msg" class="msg-text"></p>
     </div>
@@ -420,21 +419,21 @@
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
-  <script src="app.js?v=42"></script>
+  <script src="app.js?v=44"></script>
   <script src="ai.js?v=14"></script>
   <script src="gate.js?v=5"></script>
   <script src="ai-warn.js?v=3"></script>
-  <script src="prefs.js?v=4"></script>
-  <script src="account.js?v=2"></script>
+  <script src="prefs.js?v=3"></script>
+  <script src="account.js?v=1"></script>
   <script src="quiz-link.js?v=2"></script>
   <script src="default-avatars.js?v=2"></script>
-  <script src="chats.js?v=7"></script>
+  <script src="chats.js?v=6"></script>
   <script src="icons.js?v=1"></script>
   <script src="fx.js?v=3"></script>
   <script src="badge.js?v=5"></script>
   <script src="notify.js?v=1"></script>
   <script src="materials.js?v=4"></script>
-  <script src="ux-fx.js?v=1"></script>
+  <script src="ux-fx.js?v=2"></script>
   <script src="ux-core.js?v=1"></script>
 </body>
 </html>

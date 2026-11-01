@@ -17,7 +17,7 @@ function notify(message, type) {
 // ---------- الترجمة ----------
 const T = {
   ar: {
-    login: 'دخول', signup: 'حساب جديد', createAccount: 'إنشاء حساب',
+    login: 'تسجيل دخول', signup: 'حساب جديد', createAccount: 'إنشاء حساب',
     email: 'الإيميل', password: 'الباسورد', newPassword: 'الباسورد الجديد',
     pwRule: 'الباسورد 8 حروف على الأقل، فيه حرف كبير وحرف صغير ورقم ورمز (مثال: Ab12@xyz)',
     chooseAvatarSignup: 'لازم تختار صورة بروفايل عشان تعمل الحساب',
@@ -69,7 +69,7 @@ const T = {
     newMsgs: 'رسالة جديدة', loadOlder: 'حمّل الرسايل الأقدم'
   },
   en: {
-    login: 'Login', signup: 'Sign up', createAccount: 'Create account',
+    login: 'Sign in', signup: 'Sign up', createAccount: 'Create account',
     email: 'Email', password: 'Password', newPassword: 'New password',
     pwRule: 'At least 8 characters, with uppercase, lowercase, a number and a symbol (example: Ab12@xyz)',
     chooseAvatarSignup: 'You must choose a profile picture to create your account',
@@ -405,17 +405,41 @@ function messageBodyHtml(content) {
       // رابط مش صالح: نكمل عادي
     }
   }
+  // كود متعدد الأسطر ```...``` يتعرض كبلوك، والباقي يتعالج بالتنسيق الخفيف
+  const parts = raw.split(/```([^\n`]*)\n?([\s\S]*?)```/g);
+  let html = '';
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 3 === 0) {
+      html += fmtText(parts[i]);
+    } else if (i % 3 === 2) {
+      html += `<pre class="code-block"><code>${esc(parts[i].replace(/\n$/, ''))}</code></pre>`;
+    }
+  }
+  return html;
+}
+
+// تنسيق خفيف + روابط. بيتعامل مع النص بعد الـ escape، والروابط بتتحمي من التنسيق
+function fmtText(text) {
   let out = '';
   let last = 0;
   const re = /https?:\/\/[^\s<>"']+/g;
   let m;
-  while ((m = re.exec(raw))) {
+  while ((m = re.exec(text))) {
     const url = m[0].replace(/[.,;:!?)\]،؛؟]+$/, '');
-    out += esc(raw.slice(last, m.index)) + `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(url)}</a>`;
+    out += fmtInline(esc(text.slice(last, m.index))) + `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(url)}</a>`;
     last = m.index + url.length;
     re.lastIndex = last;
   }
-  return out + esc(raw.slice(last));
+  return out + fmtInline(esc(text.slice(last)));
+}
+
+function fmtInline(escaped) {
+  const codes = [];
+  let t = escaped.replace(/`([^`\n]+?)`/g, (_, c) => { codes.push(c); return '\u0000' + (codes.length - 1) + '\u0000'; });
+  t = t.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/(^|[^*\w])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
+  t = t.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code class="inline-code">${codes[+i]}</code>`);
+  return t;
 }
 
 function showScreen(id) {
@@ -543,13 +567,19 @@ document.querySelectorAll('.auth-tab').forEach(tb => {
 function setAuthMode(mode) {
   authMode = mode;
   document.querySelectorAll('.auth-tab').forEach(tb => tb.classList.toggle('active', tb.dataset.mode === mode));
+  $('auth-title').textContent = mode === 'login' ? t('login') : t('createAccount');
   $('auth-submit').textContent = mode === 'login' ? t('login') : t('createAccount');
   $('forgot-btn').classList.toggle('hidden', mode !== 'login');
+  $('to-signup').classList.toggle('hidden', mode !== 'login');
+  $('to-login').classList.toggle('hidden', mode !== 'signup');
   $('signup-box').classList.toggle('hidden', mode !== 'signup');
   // جملة شروط الباسورد تظهر بس في إنشاء الحساب
   $('pw-hint').classList.toggle('hidden', mode !== 'signup');
   setMsg('auth-msg', '');
 }
+
+$('to-signup').onclick = () => setAuthMode('signup');
+$('to-login').onclick = () => setAuthMode('login');
 
 $('signup-avatar-input').onchange = () => {
   const file = $('signup-avatar-input').files[0];
@@ -705,6 +735,9 @@ async function loadMyPrivate(uid) {
   return { available: true, row: data };
 }
 
+let gateRole = 'student';
+let gateShowPriv = false;
+
 function ensureGateFields() {
   if ($('pg-real')) return;
   const nameEl = $('pg-name');
@@ -717,28 +750,64 @@ function ensureGateFields() {
     i.style.cssText = 'width:100%;box-sizing:border-box;margin-bottom:8px;';
     return i;
   };
+  const role = document.createElement('div');
+  role.id = 'pg-role';
+  role.className = 'role-opts';
+  role.innerHTML = '<button type="button" class="role-opt active" data-role="student">🎓 طالب</button>'
+    + '<button type="button" class="role-opt" data-role="doctor">👨‍🏫 دكتور</button>';
   const real = mk('pg-real');
   const code = mk('pg-code');
   code.inputMode = 'numeric';
   code.maxLength = 7;
+  const hint = document.createElement('p');
+  hint.id = 'pg-code-hint';
+  hint.className = 'code-hint';
+  nameEl.insertAdjacentElement('beforebegin', role);
   nameEl.insertAdjacentElement('beforebegin', real);
   nameEl.insertAdjacentElement('beforebegin', code);
+  nameEl.insertAdjacentElement('beforebegin', hint);
+  role.querySelectorAll('.role-opt').forEach(b => {
+    b.onclick = () => setGateRole(b.dataset.role);
+  });
+}
+
+function setGateRole(role) {
+  gateRole = role;
+  const en = lang === 'en';
+  const doc = role === 'doctor';
+  document.querySelectorAll('#pg-role .role-opt').forEach(b => b.classList.toggle('active', b.dataset.role === role));
+  $('pg-real').placeholder = doc
+    ? (en ? "Doctor's full name (three parts)" : 'اسم الدكتور ثلاثي')
+    : (en ? 'Your real full name (three parts)' : 'اسمك الحقيقي ثلاثي');
+  const c = $('pg-code');
+  if (doc) {
+    c.inputMode = 'text';
+    c.maxLength = 20;
+    c.placeholder = en ? 'Confirmation code' : 'كود التأكيد';
+  } else {
+    c.inputMode = 'numeric';
+    c.maxLength = 7;
+    c.placeholder = en ? 'Your code (7 digits)' : 'كودك (7 أرقام)';
+  }
+  // الكود مش بيظهر في الشاشة، بيتأكد منه السيرفر
+  $('pg-code-hint').style.display = 'none';
 }
 
 function openProfileGate() {
   const en = lang === 'en';
   ensureGateFields();
   const showPriv = gatePriv.available && !gatePriv.row;
+  gateShowPriv = showPriv;
+  $('pg-role').style.display = showPriv ? '' : 'none';
   $('pg-real').style.display = showPriv ? '' : 'none';
   $('pg-code').style.display = showPriv ? '' : 'none';
+  setGateRole('student');
   $('pg-title').textContent = en ? 'Set up your profile' : 'جهّز بروفايلك';
   $('pg-hint').textContent = showPriv
     ? (en ? 'Enter your real name, your 7-digit code, a nickname and a picture. Real name and code are visible to admins only'
       : 'اكتب اسمك الحقيقي وكودك (7 أرقام) ولقبك واختار صورة. الاسم الحقيقي والكود مش بيظهروا غير للأدمن')
     : (en ? 'Choose your display name and a picture (upload one or pick a ready one)'
       : 'اكتب اسمك واختار صورة (ارفع صورة أو اختار من الجاهزة)');
-  $('pg-real').placeholder = en ? 'Your real full name (three parts)' : 'اسمك الحقيقي ثلاثي';
-  $('pg-code').placeholder = en ? 'Your code (7 digits)' : 'كودك (7 أرقام)';
   $('pg-name').placeholder = showPriv
     ? (en ? 'Your nickname (shown in chat)' : 'لقبك (الاسم اللي بيظهر في الشات)')
     : (en ? 'Your name' : 'اسمك');
@@ -760,7 +829,6 @@ async function enterChat(userId) {
   }
   $('avatar-gate').classList.add('hidden');
   showScreen('chat-screen');
-  maybeTour();
   await loadMessages();
   // تشتيت: كل جهاز يستنى عشوائي لحد 8 ثواني قبل الاشتراك، عشان الدخول الجماعي ما يضربش السيرفر مرة واحدة
   await new Promise(r => setTimeout(r, Math.random() * 8000));
@@ -778,14 +846,24 @@ $('gate-save').onclick = busy($('gate-save'), async () => {
   const needPriv = gatePriv.available && !gatePriv.row;
   let realName = '';
   let code = '';
+  let doctorKey = '';
   if (needPriv) {
     realName = $('pg-real').value.trim().replace(/\s+/g, ' ');
-    code = toEnDigits($('pg-code').value.trim());
     if (realName.split(' ').length < 3) {
-      return setMsg('gate-msg', lang === 'en' ? 'Write your real name in three parts' : 'اكتب اسمك الحقيقي ثلاثي');
+      return setMsg('gate-msg', lang === 'en' ? 'Write the name in three parts' : 'اكتب الاسم ثلاثي');
     }
-    if (!/^\d{7}$/.test(code)) {
-      return setMsg('gate-msg', lang === 'en' ? 'The code must be exactly 7 digits' : 'الكود لازم 7 أرقام بالظبط');
+    if (gateRole === 'doctor') {
+      doctorKey = $('pg-code').value.trim();
+      if (!doctorKey) {
+        return setMsg('gate-msg', lang === 'en' ? 'Enter the confirmation code' : 'اكتب كود التأكيد');
+      }
+      // قيمة placeholder في جدول البروفايل الخاص، الكود الحقيقي بيتأكد منه السيرفر
+      code = '0000000';
+    } else {
+      code = toEnDigits($('pg-code').value.trim());
+      if (!/^\d{7}$/.test(code)) {
+        return setMsg('gate-msg', lang === 'en' ? 'The code must be exactly 7 digits' : 'الكود لازم 7 أرقام بالظبط');
+      }
     }
   }
   const file = $('gate-input').files[0];
@@ -793,6 +871,16 @@ $('gate-save').onclick = busy($('gate-save'), async () => {
   if (!file && !window.pickedAvatar && !hasAvatar) return setMsg('gate-msg', t('avatarReq'));
 
   if (needPriv) {
+    if (gateRole === 'doctor') {
+      // الأول نتأكد من كود الدكتور على السيرفر، ولو صح السيرفر بيرفع الدور لأدمن
+      const { error: ce } = await sb.rpc('claim_doctor_admin', { p_track: track, p_level: level, p_code: doctorKey });
+      if (ce) {
+        const wrong = /wrong_code/.test(ce.message);
+        return setMsg('gate-msg', wrong
+          ? (lang === 'en' ? 'Wrong confirmation code' : 'كود التأكيد غلط')
+          : ce.message);
+      }
+    }
     const { error: pe } = await sb.rpc('save_my_private', { p_real_name: realName, p_code: code });
     if (pe) return setMsg('gate-msg', pe.message);
     gatePriv.row = { real_name: realName, student_code: code };
@@ -1477,6 +1565,7 @@ function paintReacts(id) {
 
 async function toggleReact(id, emoji) {
   if (!currentProfile) return;
+  navigator.vibrate?.(8);
   id = Number(id);
   const me = currentProfile.id;
 
@@ -1697,6 +1786,7 @@ async function loadMessages() {
   scrollBottom();
   // مؤشر الكتابة لازم يكون على الشات الحالي (حتى بعد تغيير الشات)
   joinTyping();
+  restoreDraft();
 }
 
 // ---------- الرد ----------
@@ -1722,6 +1812,7 @@ async function sendMessage(fileUrl = null, fileType = null) {
   const replyId = replyingTo;
   // الخانة بتتفضى فوراً، والرسالة بتظهر قبل ما السيرفر يرد
   $('msg-input').value = '';
+  try { localStorage.removeItem(draftKey()); } catch {}
   clearReply();
   sendTyping('stop');
   lastTypeSent = 0;
@@ -2203,9 +2294,16 @@ function closeSearch() {
 
 function filterMessages(q) {
   q = q.trim().toLowerCase();
+  const hits = [];
   document.querySelectorAll('#messages .msg').forEach(el => {
-    el.style.display = !q || el.textContent.toLowerCase().includes(q) ? '' : 'none';
+    const ok = !q || el.textContent.toLowerCase().includes(q);
+    el.style.display = ok ? '' : 'none';
+    if (q && ok) hits.push(el);
   });
+  searchHits = hits;
+  searchIdx = -1;
+  const c = $('search-count');
+  if (c) c.textContent = q ? String(hits.length) : '';
 }
 
 $('search-close').onclick = closeSearch;
@@ -2834,67 +2932,6 @@ function setupPasteDrop() {
 }
 
 // السحب لليمين على الرسالة = رد، والضغط المطوّل = قايمة الرسالة
-function setupGestures() {
-  const box = $('messages');
-  let sx = 0;
-  let sy = 0;
-  let lpTimer = null;
-  let moved = false;
-  let target = null;
-
-  box.addEventListener('touchstart', e => {
-    const msgEl = e.target.closest('.msg');
-    if (!msgEl || msgEl.classList.contains('pending')) return;
-    const p = e.touches[0];
-    sx = p.clientX;
-    sy = p.clientY;
-    moved = false;
-    target = msgEl;
-    lpTimer = setTimeout(() => {
-      if (moved || !target) return;
-      if (navigator.vibrate) navigator.vibrate(12);
-      const dots = target.querySelector('.dots');
-      const el = target;
-      target = null;
-      if (dots) openMenu(dots);
-      el.style.transform = '';
-    }, 500);
-  }, { passive: true });
-
-  box.addEventListener('touchmove', e => {
-    if (!target) return;
-    const p = e.touches[0];
-    const dx = p.clientX - sx;
-    const dy = p.clientY - sy;
-    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-      moved = true;
-      clearTimeout(lpTimer);
-    }
-    // سحب أفقي واضح: الرسالة بتتحرك مع الصباع
-    if (dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      target.style.transform = `translateX(${Math.min(dx, 90)}px)`;
-    }
-  }, { passive: true });
-
-  const end = e => {
-    clearTimeout(lpTimer);
-    if (!target) return;
-    const el = target;
-    target = null;
-    const p = e.changedTouches[0];
-    const dx = p.clientX - sx;
-    el.style.transform = '';
-    if (dx > 70) {
-      const m = msgById.get(Number(el.dataset.id));
-      if (m && canSend()) {
-        if (navigator.vibrate) navigator.vibrate(8);
-        setReply(m);
-      }
-    }
-  };
-  box.addEventListener('touchend', end);
-  box.addEventListener('touchcancel', end);
-}
 
 // اختصارات الكيبورد: Ctrl+K للبحث
 function setupShortcuts() {
@@ -2907,36 +2944,128 @@ function setupShortcuts() {
 }
 
 // جولة تعريفية مرة واحدة للمستخدم الجديد
-async function maybeTour() {
-  try {
-    if (localStorage.getItem('tfm_tour_v1')) return;
-    localStorage.setItem('tfm_tour_v1', '1');
-  } catch {
-    return;
-  }
-  const en = lang === 'en';
-  const steps = en ? [
-    ['Welcome to TFM Chat 👋', 'The platform is split into tracks and levels. Pick yours from the top, and each one has five chats.'],
-    ['Reply and react', 'Swipe a message to the right to reply, or long-press it. Tap an emoji to react.'],
-    ['Files and images', 'You can paste an image from your clipboard or drag a file onto the screen. Big images get compressed before sending.'],
-    ['Shortcuts', 'Ctrl+K opens search. Whatever you type but do not send is kept when you switch chats.']
-  ] : [
-    ['أهلاً بيك في TFM Chat 👋', 'المنصة مقسمة لشعب ومستويات. اختار شعبتك من فوق، وكل شعبة فيها خمس شاتات.'],
-    ['الرد والتفاعل', 'اسحب الرسالة لليمين عشان ترد عليها، أو اضغط عليها مطوّل. واضغط على الإيموجي عشان تتفاعل.'],
-    ['الملفات والصور', 'تقدر تلصق صورة من الكليبورد أو تسحب ملف على الشاشة. والصور الكبيرة بتتضغط قبل ما تتبعت.'],
-    ['اختصارات', 'Ctrl+K بيفتح البحث. واللي بتكتبه ومتبعتوش بيفضل محفوظ لو غيرت الشات.']
-  ];
-  for (let i = 0; i < steps.length; i++) {
-    const last = i === steps.length - 1;
-    const ok = await openDialog({
-      title: steps[i][0],
-      message: steps[i][1],
-      okText: last ? (en ? 'Start' : 'ابدأ') : (en ? 'Next' : 'التالي'),
-      cancelText: en ? 'Skip' : 'تخطي'
-    });
-    if (ok !== true) break;
-  }
+
+// ---------- تحسينات تانية: ضغط الصور، اللصق والسحب، المسودات، السحب للرد، الاتصال، الاختصارات، الجولة ----------
+let searchHits = [];
+let searchIdx = -1;
+
+
+// تصغير الصورة قبل الرفع (الموبايل بيصوّر بحجم كبير جداً)
+
+// نفس مسار الرفع لأي ملف: من زرار الملفات، أو لصق، أو سحب
+
+// المسودة لكل شات: اللي كتبته ما بيضيعش لو غيرت الشات
+
+
+
+// لصق صورة من الكليبورد + سحب الملفات على الشات
+
+// السحب لليمين على الرسالة = رد، والضغط المطوّل = قايمة الرسالة. الضغط المطوّل على الريأكت بيعرض مين عمله
+function setupGestures() {
+  const box = $('messages');
+  let sx = 0;
+  let sy = 0;
+  let timer = null;
+  let target = null;
+  let moved = false;
+  const cancel = () => { clearTimeout(timer); timer = null; };
+
+  box.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return cancel();
+    const chip = e.target.closest('.react-chip');
+    const msgEl = e.target.closest('.msg');
+    if (!chip && (!msgEl || e.target.closest('button,a,video,audio,.vp'))) return;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    moved = false;
+    target = msgEl;
+    timer = setTimeout(() => {
+      timer = null;
+      if (moved) return;
+      if (chip) {
+        notify(chip.title || '', 'info');
+        target = null;
+        return;
+      }
+      const dots = msgEl.querySelector('.dots');
+      if (dots) {
+        navigator.vibrate?.(15);
+        openMenu(dots);
+      }
+      target = null;
+    }, 500);
+  }, { passive: true });
+
+  box.addEventListener('touchmove', e => {
+    if (!target) return;
+    const dx = e.touches[0].clientX - sx;
+    const dy = e.touches[0].clientY - sy;
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+      moved = true;
+      cancel();
+    }
+    if (moved && dx > 0 && Math.abs(dy) < 30) {
+      target.style.transform = `translateX(${Math.min(dx, 70)}px)`;
+    }
+  }, { passive: true });
+
+  const end = e => {
+    cancel();
+    if (!target) return;
+    const el = target;
+    target = null;
+    const dx = (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : sx) - sx;
+    el.style.transition = 'transform .2s ease';
+    el.style.transform = '';
+    setTimeout(() => { el.style.transition = ''; }, 220);
+    if (dx > 70) {
+      const m = msgById.get(Number(el.dataset.id));
+      if (m && canSend()) {
+        navigator.vibrate?.(10);
+        setReply(m);
+      }
+    }
+  };
+  box.addEventListener('touchend', end);
+  box.addEventListener('touchcancel', end);
 }
+
+// نقطة الاتصال جنب اسم المستخدم: أخضر متصل، أصفر بيعيد الاتصال، رمادي أوف لاين
+
+// Ctrl+K للبحث، وEnter بينقلك للنتيجة اللي بعدها، والعداد بيوضح عدد النتايج
+function setupKeys() {
+  const count = document.createElement('span');
+  count.id = 'search-count';
+  count.className = 'search-count';
+  $('search-bar').insertBefore(count, $('search-close'));
+
+  $('search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.isComposing) {
+      e.preventDefault();
+      searchStep(e.shiftKey ? -1 : 1);
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && !$('chat-screen').classList.contains('hidden')) {
+      e.preventDefault();
+      openSearch();
+    }
+  });
+
+  $('msg-input').addEventListener('input', saveDraft);
+}
+
+function searchStep(dir) {
+  if (!searchHits.length) return;
+  searchIdx = (searchIdx + dir + searchHits.length) % searchHits.length;
+  const el = searchHits[searchIdx];
+  flashMsg(Number(el.dataset.id));
+  const c = $('search-count');
+  if (c) c.textContent = `${searchIdx + 1} / ${searchHits.length}`;
+}
+
+// الجولة التعريفية: بتظهر مرة واحدة بس
 
 // ---------- بدء التطبيق ----------
 applyRoomUI();
@@ -2947,8 +3076,9 @@ setupJump();
 setupAria();
 setupModalFocus();
 setupKeyboardInset();
-setupPasteDrop();
-setupGestures();
 setupConnDot();
+setupKeys();
+setupGestures();
+setupPasteDrop();
 setupShortcuts();
 $('msg-input').addEventListener('input', saveDraft);
