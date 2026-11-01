@@ -1840,3 +1840,46 @@ select:focus-visible,
   background: #fff;
   border: 1px solid rgba(17, 17, 22, .10);
 }
+
+/* ---------- صفحة مين عمل التفاعل ---------- */
+.react-info {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  min-height: auto;
+}
+
+.react-who { width: min(94vw, 420px); }
+
+.react-who-sec { margin-bottom: 12px; }
+
+.react-who-emo {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.react-who-emo span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.react-who-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  background: var(--ux-glass);
+  border: 1px solid var(--border);
+}
+
+.react-who-priv {
+  color: var(--muted);
+  direction: ltr;
+  text-align: start;
+}

@@ -1555,7 +1555,75 @@ function reactsHtml(id) {
     const on = currentProfile && users.has(currentProfile.id);
     html += `<button class="react-chip${on ? ' on' : ''}" data-rid="${id}" data-emoji="${esc(emoji)}" title="${esc(namesOf(users))}">${esc(emoji)} ${users.size}</button>`;
   });
+  if (html) html += `<button class="react-info" data-rid="${id}" title="${lang === 'en' ? 'Who reacted' : 'مين عمل التفاعل'}" aria-label="${lang === 'en' ? 'Who reacted' : 'مين عمل التفاعل'}">👥</button>`;
   return html;
+}
+
+// ---------- صفحة: مين باعت كل تفاعل ----------
+// الأدمن بس بيشوف الاسم الحقيقي والكود (زي بوابة البروفايل)
+async function openWhoReacted(id) {
+  const map = reactMap.get(Number(id));
+  if (!map || !map.size) return;
+  const en = lang === 'en';
+  const admin = !!currentProfile && currentProfile.role === 'admin';
+  const ids = [...new Set([...map.values()].flatMap(set => [...set]))];
+
+  const [profRes, privRes] = await Promise.all([
+    sb.from('profiles').select('id, display_name, avatar_url').in('id', ids),
+    admin
+      ? sb.from('profile_private').select('user_id, real_name, student_code').in('user_id', ids)
+      : Promise.resolve({ data: [], error: null })
+  ]);
+  if (profRes.error) return notify(profRes.error.message, 'error');
+  const pm = new Map((profRes.data || []).map(p => [p.id, p]));
+  const prm = new Map((privRes.data || []).map(r => [r.user_id, r]));
+
+  const ov = document.createElement('div');
+  ov.className = 'modal';
+  ov.innerHTML = `<div class="modal-box react-who" role="dialog" aria-modal="true">
+    <div class="modal-head"><h3>${en ? 'Reactions' : 'التفاعلات'}</h3>
+    <button class="ghost" data-close aria-label="${en ? 'Close' : 'إغلاق'}">✕</button></div>
+    <div class="react-who-body"></div></div>`;
+  const body = ov.querySelector('.react-who-body');
+
+  map.forEach((users, emoji) => {
+    const sec = document.createElement('div');
+    sec.className = 'react-who-sec';
+    sec.innerHTML = `<div class="react-who-emo">${esc(emoji)} <span>${users.size}</span></div>`;
+    users.forEach(uid => {
+      const p = pm.get(uid) || {};
+      const me = !!currentProfile && uid === currentProfile.id;
+      const name = me ? (en ? 'You' : 'أنت') : (p.display_name || '?');
+      const av = p.avatar_url
+        ? `<img class="member-avatar" src="${esc(p.avatar_url)}" alt="">`
+        : `<span class="member-avatar member-initial">${esc(String(name).charAt(0) || '?')}</span>`;
+      let extra = '';
+      if (admin) {
+        const r = prm.get(uid) || {};
+        extra = `<small class="react-who-priv">${esc(r.real_name || '—')} · ${esc(r.student_code || '—')}</small>`;
+      }
+      const row = document.createElement('div');
+      row.className = 'react-who-row';
+      row.innerHTML = `${av}<span class="member-info"><b>${esc(name)}</b>${extra}</span>`;
+      sec.appendChild(row);
+    });
+    body.appendChild(sec);
+  });
+
+  const close = () => {
+    document.removeEventListener('keydown', onKey, true);
+    ov.remove();
+  };
+  const onKey = e => {
+    if (e.key === 'Escape') { e.stopPropagation(); close(); }
+  };
+  document.addEventListener('keydown', onKey, true);
+  ov.addEventListener('click', e => {
+    if (e.target === ov || e.target.closest('[data-close]')) close();
+  });
+  document.body.appendChild(ov);
+  const first = ov.querySelector('[data-close]');
+  if (first) first.focus();
 }
 
 function paintReacts(id) {
@@ -2046,6 +2114,11 @@ $('messages').addEventListener('click', e => {
   // الصورة بتتفتح في عارض كامل
   if (e.target.tagName === 'IMG' && !e.target.classList.contains('msg-avatar')) {
     openLightbox(e.target.src);
+    return;
+  }
+  const info = e.target.closest('.react-info');
+  if (info) {
+    openWhoReacted(Number(info.dataset.rid));
     return;
   }
   const chip = e.target.closest('.react-chip');
@@ -2983,7 +3056,8 @@ function setupGestures() {
       timer = null;
       if (moved) return;
       if (chip) {
-        notify(chip.title || '', 'info');
+        navigator.vibrate?.(10);
+        openWhoReacted(Number(chip.dataset.rid));
         target = null;
         return;
       }
@@ -3082,3 +3156,11 @@ setupGestures();
 setupPasteDrop();
 setupShortcuts();
 $('msg-input').addEventListener('input', saveDraft);
+
+// كليك يمين على تفاعل (الكمبيوتر) يفتح مين عمله
+$('messages').addEventListener('contextmenu', e => {
+  const chip = e.target.closest('.react-chip');
+  if (!chip) return;
+  e.preventDefault();
+  openWhoReacted(Number(chip.dataset.rid));
+});
