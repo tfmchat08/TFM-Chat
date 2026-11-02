@@ -1894,3 +1894,25 @@ select:focus-visible,
   direction: ltr;
   text-align: start;
 }
+
+/* ---------- بوابة البروفايل: تتسكرول والزرار يبان كامل ---------- */
+#avatar-gate.modal {
+  align-items: flex-start;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 10px 32px;
+}
+
+#avatar-gate .modal-box {
+  max-height: none;
+  overflow: visible;
+  margin: auto;
+  padding-bottom: 18px;
+}
+
+#avatar-gate #gate-save {
+  min-height: 48px;
+  margin-top: 6px;
+  color: #fff;
+  font-weight: 700;
+}
