@@ -905,11 +905,11 @@ $('gate-save').onclick = busy($('gate-save'), async () => {
         const wrong = /wrong_code/.test(ce.message);
         return setMsg('gate-msg', wrong
           ? (lang === 'en' ? 'Wrong confirmation code' : 'كود التأكيد غلط')
-          : ce.message);
+          : dbErrText('claim', ce));
       }
     }
     const { error: pe } = await sb.rpc('save_my_private', { p_real_name: realName, p_code: code });
-    if (pe) return setMsg('gate-msg', pe.message);
+    if (pe) return setMsg('gate-msg', dbErrText('save_private', pe));
     gatePriv.row = { real_name: realName, student_code: code };
     window.myPrivRow = gatePriv.row;
   }
@@ -1199,6 +1199,12 @@ $('settings-btn').onclick = () => {
   $('settings-modal').classList.remove('hidden');
 };
 $('settings-close').onclick = () => $('settings-modal').classList.add('hidden');
+
+// رسالة خطأ السيرفر كاملة (للتشخيص): الكود والتفاصيل
+function dbErrText(where, err) {
+  const parts = [err.message, err.code, err.details, err.hint].filter(Boolean);
+  return `[${where}] ` + parts.join(' | ');
+}
 
 // تسجيل الخروج: زرار الإعدادات والبروفايل بيستخدموا نفس الدالة دي
 async function doLogout() {
