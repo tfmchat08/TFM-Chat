@@ -538,10 +538,23 @@ function fileName(url) {
   catch { return 'file'; }
 }
 
+// الاسم اللي فوق في الهيدر: الطالب باسمه وكود الطالب، والأدمن (الدكتور) بـ Dr. واسمه
 function refreshUserLabel() {
   if (!currentProfile) return;
-  const name = currentProfile.display_name || t('userDefault');
-  $('user-label').textContent = `${name} (${currentProfile.role})`;
+  const en = lang === 'en';
+  const row = window.myPrivRow || null;
+  let main;
+  let sub = '';
+  if (currentProfile.role === 'admin') {
+    const who = (row && row.real_name) || currentProfile.display_name || t('userDefault');
+    main = `Dr. ${who}`;
+  } else {
+    main = currentProfile.display_name || t('userDefault');
+    if (row && row.student_code) {
+      sub = (en ? 'Student code: ' : 'كود الطالب: ') + row.student_code;
+    }
+  }
+  $('user-label').innerHTML = `<b>${esc(main)}</b>${sub ? `<small class="user-sub">${esc(sub)}</small>` : ''}`;
 }
 
 function canSend() {
@@ -822,6 +835,8 @@ async function enterChat(userId) {
   if (!ok) return;
   watchKick(currentProfile.id);
   gatePriv = await loadMyPrivate(currentProfile.id);
+  window.myPrivRow = gatePriv.row;
+  refreshUserLabel();
   // أول دخول (بجوجل أو إيميل) لازم يكتب اسمه ويختار صورة
   if (!currentProfile.avatar_url || !currentProfile.profile_setup || (gatePriv.available && !gatePriv.row)) {
     openProfileGate();
@@ -884,6 +899,7 @@ $('gate-save').onclick = busy($('gate-save'), async () => {
     const { error: pe } = await sb.rpc('save_my_private', { p_real_name: realName, p_code: code });
     if (pe) return setMsg('gate-msg', pe.message);
     gatePriv.row = { real_name: realName, student_code: code };
+    window.myPrivRow = gatePriv.row;
   }
   try {
     if (file || window.pickedAvatar) await saveAvatarChoice(file, currentProfile.id);
@@ -1172,22 +1188,33 @@ $('settings-btn').onclick = () => {
 };
 $('settings-close').onclick = () => $('settings-modal').classList.add('hidden');
 
-$('set-logout').onclick = async () => {
+// تسجيل الخروج: زرار الإعدادات والبروفايل بيستخدموا نفس الدالة دي
+async function doLogout() {
   $('settings-modal').classList.add('hidden');
+  closeProfile();
+  try { leaveTyping(); } catch {}
   try {
-    leaveTyping();
-    if (kickChannel) {
-      sb.removeChannel(kickChannel);
-      kickChannel = null;
-      kickUserId = null;
-    }
+    if (kickChannel) sb.removeChannel(kickChannel);
+  } catch {}
+  kickChannel = null;
+  kickUserId = null;
+  try {
     const { error } = await sb.auth.signOut({ scope: 'local' });
-    if (error) notify(lang === 'en' ? 'Logout error: ' + error.message : 'خطأ تسجيل الخروج: ' + error.message, 'error');
+    if (error) notify((lang === 'en' ? 'Logout error: ' : 'خطأ تسجيل الخروج: ') + error.message, 'error');
   } catch (e) {
-    notify('خطأ تسجيل الخروج: ' + e.message, 'error');
+    notify((lang === 'en' ? 'Logout error: ' : 'خطأ تسجيل الخروج: ') + e.message, 'error');
   }
+  // احتياط: لو الجلسة فضلت في التخزين، نمسحها عشان الريلود ما يرجعش الحساب
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+      .forEach(k => localStorage.removeItem(k));
+  } catch {}
   window.location.reload();
-};
+}
+
+$('set-logout').onclick = doLogout;
+$('pf-logout').onclick = doLogout;
 
 $('set-avatar').onclick = () => {
   $('settings-modal').classList.add('hidden');
@@ -1259,7 +1286,6 @@ $('user-box').onclick = () => openProfile();
 // كل زرار بيستخدم نفس الوظيفة القديمة (الإعدادات القديمة متخفية بس)
 $('pf-avatar-btn').onclick = () => { closeProfile(); $('avatar-input').click(); };
 $('pf-name-btn').onclick = () => { closeProfile(); $('set-name').click(); };
-$('pf-logout').onclick = () => { closeProfile(); $('set-logout').click(); };
 $('pf-delete').onclick = () => { closeProfile(); $('set-delete').click(); };
 
 // حجم الخط: بيستخدم نفس زرار prefs.js (بيزوّد على الأحجام)، والكارت بيعرض الحجم الحالي

@@ -1388,11 +1388,11 @@ body {
 }
 
 .msg.mine {
-  border-bottom-inline-end-radius: 6px;
+  border-end-end-radius: 6px;
 }
 
 .msg:not(.mine) {
-  border-bottom-inline-start-radius: 6px;
+  border-end-start-radius: 6px;
 }
 
 .msg .meta {
@@ -1879,6 +1879,17 @@ select:focus-visible,
 }
 
 .react-who-priv {
+  color: var(--muted);
+  direction: ltr;
+  text-align: start;
+}
+
+/* ---------- اسم المستخدم في الهيدر + كود الطالب ---------- */
+.user-label b { font-weight: 800; }
+.user-label .user-sub {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--muted);
   direction: ltr;
   text-align: start;
