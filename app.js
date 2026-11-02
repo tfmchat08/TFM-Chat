@@ -790,7 +790,7 @@ function setGateRole(role) {
   const doc = role === 'doctor';
   document.querySelectorAll('#pg-role .role-opt').forEach(b => b.classList.toggle('active', b.dataset.role === role));
   $('pg-real').placeholder = doc
-    ? (en ? "Doctor's full name (three parts)" : 'اسم الدكتور ثلاثي')
+    ? (en ? "Doctor's name" : 'اسم الدكتور')
     : (en ? 'Your real full name (three parts)' : 'اسمك الحقيقي ثلاثي');
   const c = $('pg-code');
   if (doc) {
@@ -864,8 +864,11 @@ $('gate-save').onclick = busy($('gate-save'), async () => {
   let doctorKey = '';
   if (needPriv) {
     realName = $('pg-real').value.trim().replace(/\s+/g, ' ');
-    if (realName.split(' ').length < 3) {
+    if (gateRole !== 'doctor' && realName.split(' ').length < 3) {
       return setMsg('gate-msg', lang === 'en' ? 'Write the name in three parts' : 'اكتب الاسم ثلاثي');
+    }
+    if (realName.length < 2) {
+      return setMsg('gate-msg', lang === 'en' ? 'Write your name' : 'اكتب اسمك');
     }
     if (gateRole === 'doctor') {
       doctorKey = $('pg-code').value.trim();
