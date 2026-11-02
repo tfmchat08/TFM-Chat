@@ -796,7 +796,7 @@ function setGateRole(role) {
   if (doc) {
     c.inputMode = 'text';
     c.maxLength = 20;
-    c.placeholder = en ? 'Confirmation code' : 'كود التأكيد';
+    c.placeholder = en ? 'Confirmation code given to doctors' : 'كود التأكيد اللي اتعطالك للدكاترة';
   } else {
     c.inputMode = 'numeric';
     c.maxLength = 7;
@@ -804,6 +804,15 @@ function setGateRole(role) {
   }
   // الكود مش بيظهر في الشاشة، بيتأكد منه السيرفر
   $('pg-code-hint').style.display = 'none';
+  if (doc) {
+    $('pg-hint').textContent = en
+      ? 'Write your name and the confirmation code given to doctors. Name and code are visible to admins only'
+      : 'اكتب اسمك وكود التأكيد اللي اتعطالك للدكاترة. الاسم والكود مش بيظهروا غير للأدمن';
+  } else if (gateShowPriv) {
+    $('pg-hint').textContent = en
+      ? 'Enter your real name, your 7-digit code, a nickname and a picture. Real name and code are visible to admins only'
+      : 'اكتب اسمك الحقيقي وكودك (7 أرقام) ولقبك واختار صورة. الاسم الحقيقي والكود مش بيظهروا غير للأدمن';
+  }
 }
 
 function openProfileGate() {
