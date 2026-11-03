@@ -45,8 +45,8 @@
       if (reason) console.error('delete-account:', reason);
 
       if (error || (data && data.error)) {
-        if (reason === 'admin') {
-          notify(txt('حساب الأدمن مينفعش يتحذف من هنا. اتكلم مع المسؤول الأول.', 'Admin accounts cannot be deleted from here. Contact the main administrator.'), 'error');
+        if (reason === 'last_admin') {
+          notify(txt('إنت آخر أدمن في المنصة، مينفعش تحذف حسابك. اختار أدمن تاني الأول.', 'You are the last admin, so you cannot delete your account. Make someone else an admin first.'), 'error');
         } else {
           notify(failMsg + (reason ? ` (${reason})` : ''), 'error');
         }
