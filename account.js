@@ -1,5 +1,5 @@
 // ---------- زرار حذف الحساب من الإعدادات ----------
-// بيستخدم sb و lang و openDialog و notify من app.js (لازم account.js يتحمّل بعد app.js)
+// بيستخدم sb , lang , openDialog , notify من app.js (لازم account.js يتحمّل بعد app.js)
 (() => {
   const btn = document.getElementById('set-delete');
   if (!btn) return;
@@ -26,25 +26,37 @@
     });
     if (typed === null) return;
     if (typed !== WORD) {
-      notify(txt('الكلمة مش مطابقة، حسابك لسه موجود.', 'Word does not match, your account is still there.'), 'warn');
+      notify(txt('الكلمة مش مطابقة، حسابك لسه موجود.', 'Word does not match, your account is still there.'), 'error');
       return;
     }
 
-    const failMsg = txt('حصلت مشكلة وحسابك ما اتحذفش. جرّب تاني.', 'Something went wrong, your account was not deleted. Try again.');
+    const failMsg = txt('حصلت مشكلة وحسابك ما اتحذفش، جرّب تاني.', 'Something went wrong, your account was not deleted. Try again.');
     try {
       const { data, error } = await sb.functions.invoke('delete-account', { body: {} });
+
+      // لو الدالة رجّعت خطأ (403 مثلاً)، سبب الرفض بيكون جوه رد السيرفر مش في data
+      let reason = data && data.error;
+      if (!reason && error && error.context && typeof error.context.json === 'function') {
+        try {
+          const body = await error.context.json();
+          reason = body && (body.error || body.message);
+        } catch (e) { /* الرد مش JSON */ }
+      }
+      if (reason) console.error('delete-account:', reason);
+
       if (error || (data && data.error)) {
-        if (data && data.error === 'admin') {
-          notify(txt('حساب الأدمن مينفعش يتحذف من هنا. اتكلم مع المسؤول الأول.', 'Admin accounts cannot be deleted from here.'), 'error');
+        if (reason === 'admin') {
+          notify(txt('حساب الأدمن مينفعش يتحذف من هنا. اتكلم مع المسؤول الأول.', 'Admin accounts cannot be deleted from here. Contact the main administrator.'), 'error');
         } else {
-          notify(failMsg, 'error');
+          notify(failMsg + (reason ? ` (${reason})` : ''), 'error');
         }
         return;
       }
-      try { await sb.auth.signOut(); } catch {}
-      notify(txt('حسابك اتحذف. تقدر تسجل حساب جديد في أي وقت.', 'Your account was deleted. You can sign up again anytime.'), 'info');
+
+      try { await sb.auth.signOut(); } catch (e) {}
+      notify(txt('حسابك اتحذف. تقدر تسجل حساب جديد في أي وقت.', 'Your account was deleted. You can sign up again any time.'), 'success');
       setTimeout(() => location.reload(), 1200);
-    } catch {
+    } catch (e) {
       notify(failMsg, 'error');
     }
   };
